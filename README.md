@@ -6,20 +6,46 @@ This enhancement replaces hard-coded HTTP handler configurations with a flexible
 
 Use in your abap2UI5 http handler the following handler class:
 ```abap
-CLASS zcl_my_abap2UI5_http_handler DEFINITION PUBLIC.
-
-  PUBLIC SECTION.
-    INTERFACES if_http_extension.
-
-ENDCLASS.
-
-CLASS zcl_my_abap2UI5_http_handler IMPLEMENTATION.
   METHOD if_http_extension~handle_request.
+    DATA(ls_config) = VALUE z2ui5_if_types=>ty_s_http_config( ).
 
-    z2ui5_cl_http_handler_icf_config=>run( server ).
+    " Load configurations from your service instead of hardcoded defaults
+    IF ls_config-title IS INITIAL.
+      ls_config-title = z2ui5_cl_config_service=>get_config( 'APP_TITLE' ).
+      IF ls_config-title IS INITIAL.
+        ls_config-title = 'abap2UI5'. " Final fallback
+      ENDIF.
+    ENDIF.
 
+    IF ls_config-theme IS INITIAL.
+      ls_config-theme = z2ui5_cl_config_service=>get_current_theme( ).
+      IF ls_config-theme IS INITIAL.
+        ls_config-theme = 'sap_horizon'. " Final fallback
+      ENDIF.
+    ENDIF.
+
+    IF ls_config-src IS INITIAL.
+      ls_config-src = z2ui5_cl_config_service=>get_config( 'UI5_SRC' ).
+      IF ls_config-src IS INITIAL.
+        ls_config-src = `https://sapui5.hana.ondemand.com/1.120.32/resources/sap-ui-core.js`.
+      ENDIF.
+    ENDIF.
+
+    IF ls_config-styles_css IS INITIAL.
+      ls_config-styles_css = z2ui5_cl_config_service=>get_config( 'STYLES_CSS' ).
+    ENDIF.
+
+    IF ls_config-content_security_policy IS INITIAL.
+      ls_config-content_security_policy = z2ui5_cl_config_service=>get_config( 'CSP_POLICY' ).
+    ENDIF.
+
+    " Initialize default configs if tables are empty
+    z2ui5_cl_config_service=>initialize_default_configs( ).
+
+    " Call the HTTP handler with the loaded configuration
+    z2ui5_cl_http_handler=>run( server = server
+                                config = ls_config ).
   ENDMETHOD.
-ENDCLASS.
 ```
 
 ## Demo
