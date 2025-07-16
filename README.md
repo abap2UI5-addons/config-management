@@ -2,6 +2,33 @@
 
 This enhancement replaces hard-coded HTTP handler configurations with a flexible, database-driven configuration system that allows runtime customization of UI5 application settings.  
 
+## Installation
+
+Use in your abap2UI5 http handler the following handler class:
+```abap
+CLASS zcl_my_abap2UI5_http_handler DEFINITION PUBLIC.
+
+  PUBLIC SECTION.
+    INTERFACES if_http_extension.
+
+ENDCLASS.
+
+CLASS zcl_my_abap2UI5_http_handler IMPLEMENTATION.
+  METHOD if_http_extension~handle_request.
+
+    z2ui5_cl_http_handler_icf_config=>run( server ).
+
+  ENDMETHOD.
+ENDCLASS.
+```
+
+## Demo
+
+![466231499-ebaa079d-8f53-483f-be75-e40e9a4dc7c9](https://github.com/user-attachments/assets/d2b1d0ba-4343-47b1-96f4-ff53c3a5e4d7)
+
+
+## Information
+
 ### Core Configuration Service  
 - **z2ui5_cl_config_service**: Central service for managing application configurations  
   - User-specific and global configuration support  
