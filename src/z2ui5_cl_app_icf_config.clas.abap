@@ -337,6 +337,7 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
 
       WHEN `CLOSE`.
         client->popup_destroy( ).
+        client->nav_app_leave( ).
 
       WHEN `OPEN_DEBUG`.
         client->message_box_display( `Press CTRL+F12 to open the debugging tools` ).
