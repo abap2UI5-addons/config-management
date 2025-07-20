@@ -348,6 +348,7 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
       WHEN 'CONFIG_SAVE'.
         save_all_configs( ).
         client->popup_destroy( ).
+        client->nav_app_leave( ).
 
       WHEN 'CLOSE_CONFIG'.
         " Reset theme to saved value if user cancels without saving
