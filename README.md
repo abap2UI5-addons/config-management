@@ -4,49 +4,61 @@ This enhancement replaces hard-coded HTTP handler configurations with a flexible
 
 ## Installation
 
-Use in your abap2UI5 http handler the following handler class:
+Requires abap2UI5 1.145.0 or later. Install this repository with abapGit next to abap2UI5 - the HTTP handler stays as it is.
+
+abap2UI5 reads the settings of its page from its user exit, `z2ui5_if_ui5_exit`. Implement the interface in a class of your own - abap2UI5 finds the class by the interface, there is nothing to register - and let it apply the stored configuration:
 ```abap
-  METHOD if_http_extension~handle_request.
-    DATA(ls_config) = VALUE z2ui5_if_types=>ty_s_http_config( ).
+CLASS zcl_my_abap2ui5_exit DEFINITION PUBLIC FINAL CREATE PUBLIC.
+  PUBLIC SECTION.
+    INTERFACES z2ui5_if_ui5_exit.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
 
-    " Load configurations from your service instead of hardcoded defaults
-    IF ls_config-title IS INITIAL.
-      ls_config-title = z2ui5_cl_config_service=>get_config( 'APP_TITLE' ).
-      IF ls_config-title IS INITIAL.
-        ls_config-title = 'abap2UI5'. " Final fallback
-      ENDIF.
+CLASS zcl_my_abap2ui5_exit IMPLEMENTATION.
+
+  METHOD z2ui5_if_ui5_exit~set_config_http_get.
+
+    " cs_config arrives filled with the abap2UI5 defaults - a value is only
+    " replaced when one is stored, so an empty entry keeps the default
+    DATA(lv_theme) = z2ui5_cl_config_service=>get_current_theme( ).
+    IF lv_theme IS NOT INITIAL.
+      cs_config-theme = lv_theme.
     ENDIF.
 
-    IF ls_config-theme IS INITIAL.
-      ls_config-theme = z2ui5_cl_config_service=>get_current_theme( ).
-      IF ls_config-theme IS INITIAL.
-        ls_config-theme = 'sap_horizon'. " Final fallback
-      ENDIF.
+    DATA(lv_src) = z2ui5_cl_config_service=>get_config( `UI5_SRC` ).
+    IF lv_src IS NOT INITIAL.
+      cs_config-src = lv_src.
     ENDIF.
 
-    IF ls_config-src IS INITIAL.
-      ls_config-src = z2ui5_cl_config_service=>get_config( 'UI5_SRC' ).
-      IF ls_config-src IS INITIAL.
-        ls_config-src = `https://sapui5.hana.ondemand.com/1.120.32/resources/sap-ui-core.js`.
-      ENDIF.
+    DATA(lv_styles_css) = z2ui5_cl_config_service=>get_config( `STYLES_CSS` ).
+    IF lv_styles_css IS NOT INITIAL.
+      cs_config-styles_css = lv_styles_css.
     ENDIF.
 
-    IF ls_config-styles_css IS INITIAL.
-      ls_config-styles_css = z2ui5_cl_config_service=>get_config( 'STYLES_CSS' ).
+    " the complete <meta http-equiv="Content-Security-Policy" ...> tag
+    DATA(lv_csp) = z2ui5_cl_config_service=>get_config( `CSP_POLICY` ).
+    IF lv_csp IS NOT INITIAL.
+      cs_config-content_security_policy = lv_csp.
     ENDIF.
 
-    IF ls_config-content_security_policy IS INITIAL.
-      ls_config-content_security_policy = z2ui5_cl_config_service=>get_config( 'CSP_POLICY' ).
-    ENDIF.
-
-    " Initialize default configs if tables are empty
-    z2ui5_cl_config_service=>initialize_default_configs( ).
-
-    " Call the HTTP handler with the loaded configuration
-    z2ui5_cl_http_handler=>run( server = server
-                                config = ls_config ).
   ENDMETHOD.
+
+  METHOD z2ui5_if_ui5_exit~set_config_http_post.
+  ENDMETHOD.
+
+ENDCLASS.
 ```
+
+- abap2UI5 calls one exit only. If your system already has a class implementing `z2ui5_if_ui5_exit`, add the lines above to that class instead.
+- `set_config_http_get` runs for every response, not only for the page request - the response headers come from it too. `z2ui5_cl_config_service` caches the configuration, so that costs one table read per request.
+- The fields of `z2ui5_if_ui5_exit=>ty_s_http_config` are `src`, `theme`, `content_security_policy`, `styles_css`, `t_add_config` and `t_security_header`. The `title` field is gone (removed in abap2UI5 1.145.0, the page carries a constant `<title>`), so `APP_TITLE` is not applied by the exit. An app that wants it as its browser tab title sets it while it runs:
+```abap
+client->follow_up_action( val   = client->cs_event-set_title
+                          t_arg = VALUE #( ( z2ui5_cl_config_service=>get_config( `APP_TITLE` ) ) ) ).
+```
+
+Open the configuration app like any abap2UI5 app - `?app_start=z2ui5_cl_app_icf_config` on your abap2UI5 ICF path, or its class name on the abap2UI5 start page. It fills the configuration tables with their defaults on its first start.
 
 ## Demo
 
@@ -62,18 +74,18 @@ Use in your abap2UI5 http handler the following handler class:
   - Authority-based access control (master user vs regular user)  
   - Automatic fallback to framework defaults  
   
-### Enhanced Startup Application    
-- **z2ui5_cl_app_startup**: Extended with configuration management UI  
-  - Configuration popup with theme selection via value help  
-  - Real-time theme preview with global application  
+### Configuration App  
+- **z2ui5_cl_app_icf_config**: The configuration popup  
+  - Theme selection from the themes of the running UI5 release (`Z2UI5_THEMES`)  
+  - Real-time theme preview with global application, reverted on Cancel  
   - Form-based editing for all configurable parameters  
   - Role-based field visibility (admin-only fields)  
-  
-### Dynamic HTTP Handler  
-- **zcl_abap2ui5_http_handler**: Custom HTTP extension that loads configurations  
-  - Replaces hard-coded values with dynamic database lookups  
-  - Maintains backward compatibility with existing installations  
   - Automatic initialization of default configurations  
+  
+### User Exit  
+- **your `z2ui5_if_ui5_exit` class** (see Installation): Applies the stored configuration to every page abap2UI5 serves  
+  - Replaces hard-coded values with dynamic database lookups  
+  - Keeps the abap2UI5 default wherever nothing is stored  
   
 ## Database Objects:  
 - **Z2UI5_CONFIG**: Main configuration table with user/global scope support  
@@ -88,22 +100,22 @@ Use in your abap2UI5 http handler the following handler class:
   
 ## Configurable Parameters:  
 - **THEME**: UI5 theme with version-specific compatibility  
-- **APP_TITLE**: Application title displayed in browser  
+- **APP_TITLE**: Application title - stored for apps to set as tab title, the exit has no title field (see Installation)  
 - **UI5_SRC**: UI5 bootstrap source URL (admin-only)  
 - **DEBUG_MODE**: Debug mode toggle  
 - **STYLES_CSS**: Custom CSS injection  
-- **CSP_POLICY**: Content Security Policy (admin-only)  
+- **CSP_POLICY**: Content Security Policy (admin-only) - the complete `<meta http-equiv="Content-Security-Policy" ...>` tag  
   
 ## Technical Implementation:  
 - ABAP 7.30+ compatible with proper error handling  
 - Efficient caching strategy to minimize database calls    
-- Theme changes applied immediately via sap.ui.getCore().applyTheme()  
-- Value help integration using existing z2ui5_cl_pop_to_select framework  
+- Theme preview through the whitelisted frontend action `THEMING` / `setTheme` (`client->cs_event-control_global`) - abap2UI5 no longer runs raw JavaScript such as `sap.ui.getCore().applyTheme()`. It needs UI5 1.118 or later; on an older release the saved theme applies with the next page load  
+- Released abap2UI5 API (`src/02`) only: views built with `z2ui5_cl_ui5_view_builder`, no frozen `src/99` classes such as `z2ui5_cl_xml_view` or `z2ui5_cl_pop_to_select`  
 - Transaction-safe with COMMIT WORK AND WAIT and rollback on errors  
   
 ## Benefits:  
 - Eliminates need to modify HTTP handler code for configuration changes  
-- Enables per-user customization (themes, titles, etc.)  
+- Enables per-user customization (themes, custom CSS, etc.)  
 - Provides secure admin-only controls for system-level settings  
 - Maintains framework performance through intelligent caching  
 - Supports UI5 theme compatibility validation  
