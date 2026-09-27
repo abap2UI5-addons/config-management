@@ -1,0 +1,42 @@
+{
+  // Syntax check against the abap2UI5 core, the same rule set as the other
+  // abap2UI5-addons repositories. Without this file abaplint.app falls back to
+  // its full default rule set, which reports style findings the addons do not
+  // follow. The abap2UI5 dependency has no version pin - abaplint clones its
+  // main branch, so the check also tells when an upstream rename breaks this
+  // app.
+  "global": {
+    "files": "/src/**/*.*"
+  },
+  "dependencies": [
+    {
+      "url": "https://github.com/abaplint/deps",
+      "folder": "/deps",
+      "files": "/src/**/*.*"
+    },
+    {
+      "url": "https://github.com/abap2UI5/abap2UI5",
+      "folder": "/abap2UI5",
+      "files": "/src/**/*.*"
+    }
+  ],
+  "syntax": {
+    "version": "v750",
+    "errorNamespace": "^(Z|Y|LCL_|TY_|LIF_)"
+  },
+  "rules": {
+    "downport": true,
+    "begin_end_names": true,
+    "check_ddic": true,
+    "check_include": true,
+    "check_syntax": true,
+    "global_class": true,
+    "definitions_top": false,
+    "implement_methods": true,
+    "method_implemented_twice": true,
+    "parser_error": true,
+    "superclass_final": true,
+    "unknown_types": true,
+    "xml_consistency": true
+  }
+}
