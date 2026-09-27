@@ -32,6 +32,8 @@ CLASS z2ui5_cl_app_icf_config DEFINITION
     DATA mt_classes             TYPE z2ui5_cl_util=>ty_t_classes.
     DATA mv_config_popup_active TYPE abap_bool.
 
+    METHODS ui5_version_read.
+
 ENDCLASS.
 
 
@@ -231,12 +233,14 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
     DATA temp1        TYPE REF TO z2ui5_cl_core_srv_draft.
     DATA lv_count     LIKE temp4.
 
+    " the frontend reports its UI5 runtime with every request
+    ui5_version_read( ).
+
     page2 = z2ui5_cl_xml_view=>factory_popup(
          )->dialog( title      = `abap2UI5 - System Information`
                     afterclose = client->_event( `CLOSE` ) ).
 
     content = page2->content( ).
-    content->_z2ui5( )->info_frontend( ui5_version = client->_bind( mv_ui5_version ) ).
 
     simple_form2 = content->simple_form( editable                = abap_true
                                          layout                  = `ResponsiveGridLayout`
@@ -370,7 +374,7 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
       WHEN 'THEME_VALUE_HELP'.
         " Ensure UI5 version is available
         IF mv_ui5_version IS INITIAL.
-          mv_ui5_version = '1.120.32'. " Fallback
+          ui5_version_read( ).
         ENDIF.
 
         " Get available themes for current UI5 version
@@ -393,10 +397,19 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
     ENDCASE.
   ENDMETHOD.
 
+  METHOD ui5_version_read.
+
+    mv_ui5_version = client->get( )-s_ui5-version.
+    IF mv_ui5_version IS INITIAL.
+      mv_ui5_version = '1.120.32'. " Default fallback version
+    ENDIF.
+
+  ENDMETHOD.
+
   METHOD z2ui5_on_init.
 
-    " Initialize UI5 version - fallback approach for ABAP 7.3
-    mv_ui5_version = '1.120.32'. " Default fallback version
+    " the UI5 version the browser runs - it selects the theme list
+    ui5_version_read( ).
 
     " Initialize default configs early
     z2ui5_cl_config_service=>initialize_default_configs( ).
