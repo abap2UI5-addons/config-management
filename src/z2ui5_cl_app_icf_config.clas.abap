@@ -42,6 +42,11 @@ CLASS z2ui5_cl_app_icf_config DEFINITION
     METHODS ui5_version_read.
     METHODS themes_read.
 
+    METHODS theme_apply
+      IMPORTING iv_theme TYPE string.
+
+    METHODS leave_deferred.
+
 ENDCLASS.
 
 
@@ -53,8 +58,8 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
   METHOD save_all_configs.
     TRY.
         " Save theme from bound form field
-        IF ms_config-app_title IS NOT INITIAL.
-          client->follow_up_action( |sap.ui.getCore().applyTheme("{ ms_config-theme }");| ).
+        IF ms_config-theme IS NOT INITIAL.
+          theme_apply( ms_config-theme ).
           z2ui5_cl_config_service=>set_config( iv_key   = 'THEME'
                                                iv_value = ms_config-theme ).
         ENDIF.
@@ -363,12 +368,11 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
 
       WHEN `THEME_CHANGE`.
         " preview - the Select has written the picked theme into ms_config-theme
-        client->follow_up_action( |sap.ui.getCore().applyTheme("{ ms_config-theme }");| ).
+        theme_apply( ms_config-theme ).
 
       WHEN 'CONFIG_SAVE'.
         save_all_configs( ).
-        client->popup_destroy( ).
-        client->nav_app_leave( ).
+        leave_deferred( ).
 
       WHEN 'CLOSE_CONFIG'.
         " Reset theme to saved value if user cancels without saving
@@ -376,10 +380,14 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
 
         IF ms_config-theme <> lv_saved_theme.
           " Revert to saved theme
-          client->follow_up_action( |sap.ui.getCore().applyTheme("{ lv_saved_theme }");| ).
+          theme_apply( lv_saved_theme ).
           ms_config-theme = lv_saved_theme.
         ENDIF.
         mv_config_popup_active = abap_false.
+        leave_deferred( ).
+
+      WHEN `CONFIG_LEAVE`.
+        " fired by the timer leave_deferred( ) started
         client->popup_destroy( ).
         client->nav_app_leave( ).
 
@@ -414,6 +422,33 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
     IF ms_config-theme IS NOT INITIAL AND NOT line_exists( mt_themes[ theme = ms_config-theme ] ). "#EC CI_SORTSEQ
       INSERT VALUE #( theme = ms_config-theme ) INTO mt_themes INDEX 1.
     ENDIF.
+
+  ENDMETHOD.
+
+  METHOD theme_apply.
+
+    " The whitelisted frontend action for the theme (GLOBAL_TARGETS-THEMING
+    " in the abap2UI5 frontend) - follow_up_action( ) no longer runs raw
+    " JavaScript such as sap.ui.getCore( ).applyTheme( ). THEMING is the lazily
+    " required sap/ui/core/Theming, which exists from UI5 1.118 on: on an older
+    " release the frontend logs "not available" and the preview stays out,
+    " while a saved theme still applies with the next page load (user exit).
+    client->follow_up_action( val   = client->cs_event-control_global
+                              " abap2ui5lint-disable-next-line frontend-action-too-new -- live preview only; below UI5 1.118 the saved theme applies on the next page load
+                              t_arg = VALUE #( ( `THEMING` ) ( `setTheme` ) ( iv_theme ) ) ).
+
+  ENDMETHOD.
+
+  METHOD leave_deferred.
+
+    " The frontend actions an app queues do not survive its own
+    " nav_app_leave( ) - the app it returns to starts with an empty queue - so
+    " the theme, its revert on Cancel and the toast of the save cannot share a
+    " roundtrip with the leave. This roundtrip sends them; the client timer
+    " fires CONFIG_LEAVE right after it has been rendered, and that roundtrip
+    " closes the popup and leaves.
+    client->follow_up_action( val   = client->cs_event-start_timer
+                              t_arg = VALUE #( ( `CONFIG_LEAVE` ) ( `0` ) ) ).
 
   ENDMETHOD.
 
