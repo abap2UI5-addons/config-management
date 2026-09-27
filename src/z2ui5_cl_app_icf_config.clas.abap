@@ -5,6 +5,12 @@ CLASS z2ui5_cl_app_icf_config DEFINITION
   PUBLIC SECTION.
     INTERFACES z2ui5_if_app.
 
+    TYPES:
+      BEGIN OF ty_s_theme,
+        theme TYPE string,
+      END OF ty_s_theme.
+    TYPES ty_t_themes TYPE STANDARD TABLE OF ty_s_theme WITH EMPTY KEY.
+
     DATA mv_ui5_version TYPE string.
     DATA client         TYPE REF TO z2ui5_if_client.
     DATA:
@@ -18,6 +24,8 @@ CLASS z2ui5_cl_app_icf_config DEFINITION
       END OF ms_config.
 
     DATA mt_all_configs TYPE z2ui5_cl_config_service=>ty_t_config.
+    " the items of the theme Select - the themes of the running UI5 release
+    DATA mt_themes      TYPE ty_t_themes.
 
     CLASS-METHODS factory
       RETURNING VALUE(result) TYPE REF TO z2ui5_cl_app_icf_config.
@@ -29,10 +37,15 @@ CLASS z2ui5_cl_app_icf_config DEFINITION
     METHODS save_all_configs.
 
   PROTECTED SECTION.
-    DATA mt_classes             TYPE z2ui5_cl_util=>ty_t_classes.
     DATA mv_config_popup_active TYPE abap_bool.
 
     METHODS ui5_version_read.
+    METHODS themes_read.
+
+    METHODS theme_apply
+      IMPORTING iv_theme TYPE string.
+
+    METHODS leave_deferred.
 
 ENDCLASS.
 
@@ -45,8 +58,8 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
   METHOD save_all_configs.
     TRY.
         " Save theme from bound form field
-        IF ms_config-app_title IS NOT INITIAL.
-          client->follow_up_action( |sap.ui.getCore().applyTheme("{ ms_config-theme }");| ).
+        IF ms_config-theme IS NOT INITIAL.
+          theme_apply( ms_config-theme ).
           z2ui5_cl_config_service=>set_config( iv_key   = 'THEME'
                                                iv_value = ms_config-theme ).
         ENDIF.
@@ -103,7 +116,8 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD view_display_config_popup.
-    DATA lv_is_master TYPE boolean.
+    DATA lv_is_master   TYPE boolean.
+    DATA lv_debug_value TYPE string.
 
     mv_config_popup_active = abap_true.
 
@@ -114,7 +128,7 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
     z2ui5_cl_config_service=>initialize_default_configs( ).
 
     " Only refresh configurations if they haven't been loaded yet or if explicitly requested
-    " This prevents overwriting values selected from value help popups
+    " This keeps unsaved input - a theme picked for the preview - when the popup is displayed again
     IF ms_config-theme IS INITIAL.
       ms_config-theme = z2ui5_cl_config_service=>get_current_theme( ).
     ENDIF.
@@ -136,7 +150,6 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
     ENDIF.
 
     " Debug mode handling
-    DATA lv_debug_value TYPE string.
     lv_debug_value = z2ui5_cl_config_service=>get_config( 'DEBUG_MODE' ).
     IF lv_debug_value = 'X' OR lv_debug_value = 'true' OR lv_debug_value = '1'.
       ms_config-debug_mode = abap_true.
@@ -144,194 +157,198 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
       ms_config-debug_mode = abap_false.
     ENDIF.
 
-    DATA page TYPE REF TO z2ui5_cl_xml_view.
-    page = z2ui5_cl_xml_view=>factory_popup(
-             )->dialog( title         = 'Configuration Settings'
-                        afterclose    = client->_event( 'CLOSE_CONFIG' )
-                        contentwidth  = '60%'
-                        contentheight = '70%' ).
+    " the items of the theme Select
+    themes_read( ).
 
-    DATA form TYPE REF TO z2ui5_cl_xml_view.
-    form = page->simple_form( editable = abap_true
-                              layout   = 'ResponsiveGridLayout' ).
+    DATA(popup) = z2ui5_cl_ui5_view_builder=>factory( ).
 
-    " Theme configuration section - Display field + Button approach
-    form->toolbar( )->title( 'Theme Settings' ).
-    form->label( 'Theme' ).
+    DATA(dialog) = popup->ele( n = `FragmentDefinition` ns = `core`
+        )->a( n = `xmlns`       v = `sap.m`
+        )->a( n = `xmlns:core`  v = `sap.ui.core`
+        )->a( n = `xmlns:form`  v = `sap.ui.layout.form`
 
-    " Use a horizontal layout for theme selection
-    DATA theme_hbox TYPE REF TO z2ui5_cl_xml_view.
-    theme_hbox = form->hbox( ).
+        )->ele( `Dialog`
+            )->a( n = `title`          v = `Configuration Settings`
+            )->a( n = `afterClose`     v = client->_event( `CLOSE_CONFIG` )
+            )->a( n = `contentWidth`   v = `60%`
+            )->a( n = `contentHeight`  v = `70%` ).
 
-    " Display-only text field showing current theme
-    theme_hbox->text( text  = client->_bind( ms_config-theme )
-                      class = 'sapUiMediumMarginEnd' ).
+    DATA(form) = dialog->ele( `content`
+        )->ele( n = `SimpleForm` ns = `form`
+            )->a( n = `editable`  v = `true`
+            )->a( n = `layout`    v = `ResponsiveGridLayout`
+            )->ele( n = `content` ns = `form` ).
 
-    " Button to open theme selection
-    theme_hbox->button( text  = 'Select Theme'
-                        icon  = 'sap-icon://palette'
-                        press = client->_event( 'THEME_VALUE_HELP' )
-                        type  = 'Transparent' ).
+    " Theme configuration section - picking a theme previews it (THEME_CHANGE)
+    form->ele( `Toolbar`
+        )->tag( `Title`
+            )->a( n = `text`  v = `Theme Settings` ).
+    form->tag( `Label`
+        )->a( n = `text`  v = `Theme` ).
+    form->ele( `Select`
+        )->a( n = `selectedKey`  v = client->_bind( ms_config-theme )
+        )->a( n = `items`        v = client->_bind( mt_themes )
+        )->a( n = `change`       v = client->_event( `THEME_CHANGE` )
+        )->ele( `items`
+            )->tag( n = `Item` ns = `core`
+                )->a( n = `key`   v = `{THEME}`
+                )->a( n = `text`  v = `{THEME}` ).
 
     " Debug mode section
-    form->toolbar( )->title( 'Debug Settings' ).
-    form->label( 'Debug Mode' ).
-    form->checkbox( selected = client->_bind_edit( ms_config-debug_mode )
-                    enabled  = abap_true ).
+    form->ele( `Toolbar`
+        )->tag( `Title`
+            )->a( n = `text`  v = `Debug Settings` ).
+    form->tag( `Label`
+        )->a( n = `text`  v = `Debug Mode` ).
+    form->tag( `CheckBox`
+        )->a( n = `selected`  v = client->_bind( ms_config-debug_mode ) ).
 
     " UI5 Source configuration (admin only)
-    form->toolbar( )->title( 'UI5 Bootstrap Settings' ).
-    form->label( 'UI5 Source URL' ).
+    form->ele( `Toolbar`
+        )->tag( `Title`
+            )->a( n = `text`  v = `UI5 Bootstrap Settings` ).
+    form->tag( `Label`
+        )->a( n = `text`  v = `UI5 Source URL` ).
     IF lv_is_master = abap_true.
-      form->input( value   = client->_bind_edit( ms_config-ui5_src )
-                   enabled = abap_true ).
+      form->tag( `Input`
+          )->a( n = `value`  v = client->_bind( ms_config-ui5_src ) ).
     ELSE.
-      form->text( ms_config-ui5_src ).
-      form->text( '(Admin only)' ).
+      form->tag( `Text`
+          )->a( n = `text`  t = ms_config-ui5_src ).
+      form->tag( `Text`
+          )->a( n = `text`  v = `(Admin only)` ).
     ENDIF.
 
     " Application Title configuration
-    form->toolbar( )->title( 'Application Settings' ).
-    form->label( 'Application Title' ).
-    form->input( value   = client->_bind_edit( ms_config-app_title )
-                 enabled = abap_true ).
+    form->ele( `Toolbar`
+        )->tag( `Title`
+            )->a( n = `text`  v = `Application Settings` ).
+    form->tag( `Label`
+        )->a( n = `text`  v = `Application Title` ).
+    form->tag( `Input`
+        )->a( n = `value`  v = client->_bind( ms_config-app_title ) ).
 
     " Custom CSS configuration
-    form->toolbar( )->title( 'Style Settings' ).
-    form->label( 'Custom CSS' ).
-    form->text_area( value   = client->_bind_edit( ms_config-styles_css )
-                     rows    = '5'
-                     enabled = abap_true ).
+    form->ele( `Toolbar`
+        )->tag( `Title`
+            )->a( n = `text`  v = `Style Settings` ).
+    form->tag( `Label`
+        )->a( n = `text`  v = `Custom CSS` ).
+    form->tag( `TextArea`
+        )->a( n = `value`  v = client->_bind( ms_config-styles_css )
+        )->a( n = `rows`   v = `5` ).
 
     " Content Security Policy (admin only)
-    form->toolbar( )->title( 'Security Settings' ).
-    form->label( 'Content Security Policy' ).
+    form->ele( `Toolbar`
+        )->tag( `Title`
+            )->a( n = `text`  v = `Security Settings` ).
+    form->tag( `Label`
+        )->a( n = `text`  v = `Content Security Policy` ).
     IF lv_is_master = abap_true.
-      form->text_area( value   = client->_bind_edit( ms_config-csp_policy )
-                       rows    = '3'
-                       enabled = abap_true ).
+      form->tag( `TextArea`
+          )->a( n = `value`  v = client->_bind( ms_config-csp_policy )
+          )->a( n = `rows`   v = `3` ).
     ELSE.
-      form->text( ms_config-csp_policy ).
-      form->text( '(Admin only)' ).
+      form->tag( `Text`
+          )->a( n = `text`  t = ms_config-csp_policy ).
+      form->tag( `Text`
+          )->a( n = `text`  v = `(Admin only)` ).
     ENDIF.
 
     " Buttons
-    page->buttons( )->button( text  = 'Save'
-                              press = client->_event( 'CONFIG_SAVE' )
-                              type  = 'Emphasized' ).
-    page->buttons( )->button( text  = 'Cancel'
-                              press = client->_event( 'CLOSE_CONFIG' ) ).
+    dialog->ele( `buttons`
+        )->tag( `Button`
+            )->a( n = `text`   v = `Save`
+            )->a( n = `press`  v = client->_event( `CONFIG_SAVE` )
+            )->a( n = `type`   v = `Emphasized`
+        )->tag( `Button`
+            )->a( n = `text`   v = `Cancel`
+            )->a( n = `press`  v = client->_event( `CLOSE_CONFIG` ) ).
 
-    client->popup_display( page->stringify( ) ).
+    client->popup_display( popup->stringify( ) ).
   ENDMETHOD.
 
   METHOD view_display_popup.
-    DATA page2        TYPE REF TO z2ui5_cl_xml_view.
-    DATA content      TYPE REF TO z2ui5_cl_xml_view.
-    DATA simple_form2 TYPE REF TO z2ui5_cl_xml_view.
-    DATA temp4        TYPE string.
-    DATA temp1        TYPE REF TO z2ui5_cl_core_srv_draft.
-    DATA lv_count     LIKE temp4.
 
     " the frontend reports its UI5 runtime with every request
     ui5_version_read( ).
 
-    page2 = z2ui5_cl_xml_view=>factory_popup(
-         )->dialog( title      = `abap2UI5 - System Information`
-                    afterclose = client->_event( `CLOSE` ) ).
+    DATA(popup) = z2ui5_cl_ui5_view_builder=>factory( ).
 
-    content = page2->content( ).
+    DATA(dialog) = popup->ele( n = `FragmentDefinition` ns = `core`
+        )->a( n = `xmlns`       v = `sap.m`
+        )->a( n = `xmlns:core`  v = `sap.ui.core`
+        )->a( n = `xmlns:form`  v = `sap.ui.layout.form`
 
-    simple_form2 = content->simple_form( editable                = abap_true
-                                         layout                  = `ResponsiveGridLayout`
-                                         labelspanxl             = `4`
-                                         labelspanl              = `3`
-                                         labelspanm              = `4`
-                                         labelspans              = `12`
-                                         adjustlabelspan         = abap_false
-                                         emptyspanxl             = `0`
-                                         emptyspanl              = `4`
-                                         emptyspanm              = `0`
-                                         emptyspans              = `0`
-                                         columnsxl               = `1`
-                                         columnsl                = `1`
-                                         columnsm                = `1`
-                                         singlecontainerfullsize = abap_false
-      )->content( `form` ).
+        )->ele( `Dialog`
+            )->a( n = `title`       v = `abap2UI5 - System Information`
+            )->a( n = `afterClose`  v = client->_event( `CLOSE` ) ).
 
-    simple_form2->toolbar( )->title( `Frontend` ).
+    DATA(form) = dialog->ele( `content`
+        )->ele( n = `SimpleForm` ns = `form`
+            )->a( n = `editable`                 v = `true`
+            )->a( n = `layout`                   v = `ResponsiveGridLayout`
+            )->a( n = `labelSpanXL`              v = `4`
+            )->a( n = `labelSpanL`               v = `3`
+            )->a( n = `labelSpanM`               v = `4`
+            )->a( n = `labelSpanS`               v = `12`
+            )->a( n = `adjustLabelSpan`          v = `false`
+            )->a( n = `emptySpanXL`              v = `0`
+            )->a( n = `emptySpanL`               v = `4`
+            )->a( n = `emptySpanM`               v = `0`
+            )->a( n = `emptySpanS`               v = `0`
+            )->a( n = `columnsXL`                v = `1`
+            )->a( n = `columnsL`                 v = `1`
+            )->a( n = `columnsM`                 v = `1`
+            )->a( n = `singleContainerFullSize`  v = `false`
+            )->ele( n = `content` ns = `form` ).
 
-    simple_form2->label( `UI5 Version` ).
-    simple_form2->text( client->_bind( mv_ui5_version ) ).
-    simple_form2->label( `Launchpad active` ).
-    simple_form2->checkbox( enabled  = abap_false
-                            selected = client->get( )-check_launchpad_active ).
+    form->ele( `Toolbar`
+        )->tag( `Title`
+            )->a( n = `text`  v = `Frontend` ).
+    form->tag( `Label`
+        )->a( n = `text`  v = `UI5 Version` ).
+    form->tag( `Text`
+        )->a( n = `text`  v = client->_bind( mv_ui5_version ) ).
+    form->tag( `Label`
+        )->a( n = `text`  v = `Launchpad active` ).
+    form->tag( `CheckBox`
+        )->a( n = `selected`  b = client->get( )-check_launchpad_active
+        )->a( n = `enabled`   v = `false` ).
 
-    simple_form2->toolbar( )->title( `Backend` ).
+    " The draft count and the ABAP for Cloud flag are gone from here: the
+    " released API (src/02) answers neither, only core internals do. The
+    " abap2UI5 start page shows both in its own System Information popup.
+    form->ele( `Toolbar`
+        )->tag( `Title`
+            )->a( n = `text`  v = `abap2UI5` ).
+    form->tag( `Label`
+        )->a( n = `text`  v = `Version` ).
+    form->tag( `Text`
+        )->a( n = `text`  v = z2ui5_if_app=>version ).
 
-    simple_form2->label( `ABAP for Cloud` ).
-    simple_form2->checkbox( enabled  = abap_false
-                            selected = z2ui5_cl_util=>context_check_abap_cloud( ) ).
+    dialog->ele( `endButton`
+        )->tag( `Button`
+            )->a( n = `text`   v = `close`
+            )->a( n = `press`  v = client->_event( `CLOSE` )
+            )->a( n = `type`   v = `Emphasized` ).
 
-    temp1 = NEW z2ui5_cl_core_srv_draft( ).
-    temp4 = temp1->count_entries( ).
-
-    lv_count = temp4.
-    simple_form2->toolbar( )->title( `abap2UI5` ).
-    simple_form2->label( `Version ` ).
-    simple_form2->text( z2ui5_if_app=>version ).
-    simple_form2->label( `Draft Entries ` ).
-    simple_form2->text( lv_count ).
-
-    page2->end_button( )->button( text  = 'close'
-                                  press = client->_event( 'CLOSE' )
-                                  type  = 'Emphasized' ).
-
-    client->popup_display( page2->stringify( ) ).
+    client->popup_display( popup->stringify( ) ).
   ENDMETHOD.
 
- METHOD z2ui5_if_app~main.
+  METHOD z2ui5_if_app~main.
     me->client = client.
 
-    IF client->check_on_init( ) IS NOT INITIAL.
+    IF client->check_on_init( ).
       z2ui5_on_init( ).
       view_display_config_popup( ).
-*      view_display_start( ).
-      RETURN.
+    ELSEIF client->check_on_navigated( ).
+      " a restored draft (bookmark, browser Back/Forward) - the popup is the
+      " only view this app has, so it is displayed again
+      view_display_config_popup( ).
+    ELSEIF client->check_on_event( ).
+      z2ui5_on_event( ).
     ENDIF.
-
-    IF client->get( )-check_on_navigated = abap_true.
-      TRY.
-          DATA(lo_f4) = CAST z2ui5_cl_pop_to_select(
-            client->get_app( client->get( )-s_draft-id_prev_app ) ).
-          DATA(ls_result) = lo_f4->result( ).
-
-          IF ls_result-check_confirmed = abap_true.
-            " Check if this is a theme selection popup
-            TRY.
-                ASSIGN ls_result-row->* TO FIELD-SYMBOL(<selected_row>).
-                ASSIGN COMPONENT 'THEME' OF STRUCTURE <selected_row> TO FIELD-SYMBOL(<theme_value>).
-                IF sy-subrc = 0.
-                  " This is theme selection - update config and apply preview
-                  ms_config-theme = <theme_value>.
-
-                  " Apply theme as preview
-                  client->follow_up_action( |sap.ui.getCore().applyTheme("{ ms_config-theme }");| ).
-
-                  " Redisplay the config popup
-                  mv_config_popup_active = abap_true.
-                  view_display_config_popup( ).
-                  RETURN.
-                ENDIF.
-              CATCH cx_root.
-            ENDTRY.
-
-          ENDIF.
-        CATCH cx_root.
-      ENDTRY.
-    ENDIF.
-
-    z2ui5_on_event( ).
   ENDMETHOD.
 
   METHOD z2ui5_on_event.
@@ -349,10 +366,13 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
       WHEN 'SET_CONFIG'.
         view_display_config_popup( ).
 
+      WHEN `THEME_CHANGE`.
+        " preview - the Select has written the picked theme into ms_config-theme
+        theme_apply( ms_config-theme ).
+
       WHEN 'CONFIG_SAVE'.
         save_all_configs( ).
-        client->popup_destroy( ).
-        client->nav_app_leave( ).
+        leave_deferred( ).
 
       WHEN 'CLOSE_CONFIG'.
         " Reset theme to saved value if user cancels without saving
@@ -360,39 +380,20 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
 
         IF ms_config-theme <> lv_saved_theme.
           " Revert to saved theme
-          client->follow_up_action( |sap.ui.getCore().applyTheme("{ lv_saved_theme }");| ).
+          theme_apply( lv_saved_theme ).
           ms_config-theme = lv_saved_theme.
         ENDIF.
         mv_config_popup_active = abap_false.
+        leave_deferred( ).
+
+      WHEN `CONFIG_LEAVE`.
+        " fired by the timer leave_deferred( ) started
         client->popup_destroy( ).
         client->nav_app_leave( ).
 
       WHEN `OPEN_INFO`.
         view_display_popup( ).
         RETURN.
-
-      WHEN 'THEME_VALUE_HELP'.
-        " Ensure UI5 version is available
-        IF mv_ui5_version IS INITIAL.
-          ui5_version_read( ).
-        ENDIF.
-
-        " Get available themes for current UI5 version
-        DATA(lt_themes_raw) = z2ui5_cl_config_service=>get_theme_list( mv_ui5_version ).
-
-        " Convert to table structure for popup selection
-        TYPES: BEGIN OF ty_theme_item,
-                 theme TYPE string,
-               END OF ty_theme_item.
-        DATA lt_themes TYPE STANDARD TABLE OF ty_theme_item.
-
-        lt_themes = VALUE #( FOR theme IN lt_themes_raw
-                             ( theme = theme ) ).
-
-        " Open selection popup using existing framework popup
-        client->nav_app_call( z2ui5_cl_pop_to_select=>factory( i_tab        = lt_themes
-                                                               i_title      = 'Select Theme'
-                                                               i_sort_field = 'THEME' ) ).
 
     ENDCASE.
   ENDMETHOD.
@@ -403,6 +404,51 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
     IF mv_ui5_version IS INITIAL.
       mv_ui5_version = '1.120.32'. " Default fallback version
     ENDIF.
+
+  ENDMETHOD.
+
+  METHOD themes_read.
+
+    IF mv_ui5_version IS INITIAL.
+      ui5_version_read( ).
+    ENDIF.
+
+    DATA(lt_theme_names) = z2ui5_cl_config_service=>get_theme_list( mv_ui5_version ).
+    mt_themes = VALUE #( FOR lv_theme_name IN lt_theme_names ( theme = lv_theme_name ) ).
+
+    " the current theme stays selectable even when the list of the running
+    " release does not carry it - the Select forces a selection, and would
+    " otherwise put its first entry into ms_config-theme and save that
+    IF ms_config-theme IS NOT INITIAL AND NOT line_exists( mt_themes[ theme = ms_config-theme ] ). "#EC CI_SORTSEQ
+      INSERT VALUE #( theme = ms_config-theme ) INTO mt_themes INDEX 1.
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD theme_apply.
+
+    " The whitelisted frontend action for the theme (GLOBAL_TARGETS-THEMING
+    " in the abap2UI5 frontend) - follow_up_action( ) no longer runs raw
+    " JavaScript such as sap.ui.getCore( ).applyTheme( ). THEMING is the lazily
+    " required sap/ui/core/Theming, which exists from UI5 1.118 on: on an older
+    " release the frontend logs "not available" and the preview stays out,
+    " while a saved theme still applies with the next page load (user exit).
+    client->follow_up_action( val   = client->cs_event-control_global
+                              " abap2ui5lint-disable-next-line frontend-action-too-new -- live preview only; below UI5 1.118 the saved theme applies on the next page load
+                              t_arg = VALUE #( ( `THEMING` ) ( `setTheme` ) ( iv_theme ) ) ).
+
+  ENDMETHOD.
+
+  METHOD leave_deferred.
+
+    " The frontend actions an app queues do not survive its own
+    " nav_app_leave( ) - the app it returns to starts with an empty queue - so
+    " the theme, its revert on Cancel and the toast of the save cannot share a
+    " roundtrip with the leave. This roundtrip sends them; the client timer
+    " fires CONFIG_LEAVE right after it has been rendered, and that roundtrip
+    " closes the popup and leaves.
+    client->follow_up_action( val   = client->cs_event-start_timer
+                              t_arg = VALUE #( ( `CONFIG_LEAVE` ) ( `0` ) ) ).
 
   ENDMETHOD.
 
