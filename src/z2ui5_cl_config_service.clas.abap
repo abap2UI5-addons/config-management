@@ -214,7 +214,7 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     " Check for master configuration authority
     AUTHORITY-CHECK OBJECT 'Z2UI5_CONF'
                     ID 'ACTVT' FIELD '02'  " Change authorization
-                    ID 'CONFIG_TYPE' FIELD '*'.
+                    ID 'CONFIG_TYP' FIELD '*'.
     " sy-subrc = 0. " Set to 0 to Simulate authority check for master user
     IF sy-subrc = 0.
       rv_is_master = COND #( WHEN sy-subrc = 0 THEN 'X' ELSE '' ).
@@ -224,7 +224,7 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
   METHOD check_config_authority.
     AUTHORITY-CHECK OBJECT 'Z2UI5_CONF'
                     ID 'ACTVT' FIELD iv_activity
-                    ID 'CONFIG_TYPE' FIELD iv_config_key.
+                    ID 'CONFIG_TYP' FIELD iv_config_key.
     " sy-subrc = 0. " Set to 0 to Simulate authority check
     IF sy-subrc = 0.
       rv_authorized = COND #( WHEN sy-subrc = 0 THEN abap_true ELSE abap_false ).
