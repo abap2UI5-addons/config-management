@@ -1,0 +1,26 @@
+{
+  "name": "config-management",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Database-driven configuration for abap2UI5 - theme, UI5 source, custom CSS and CSP, applied through the z2ui5_if_ui5_exit user exit.",
+  "license": "MIT",
+  "scripts": {
+    "lint": "abaplint ./abaplint.jsonc",
+    "check": "npm run lint",
+    "test": "npm run check"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abap2UI5-addons/config-management.git"
+  },
+  "bugs": {
+    "url": "https://github.com/abap2UI5-addons/config-management/issues"
+  },
+  "homepage": "https://github.com/abap2UI5-addons/config-management#readme",
+  "devDependencies": {
+    "@abaplint/cli": "^2.120.60"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
