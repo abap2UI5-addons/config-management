@@ -69,9 +69,12 @@ Everything is in `src/`, one package:
 - **Name the authorization field as the object defines it.**
   `Z2UI5_CONF`'s second field is `CONFIG_TYP` (10 characters, the maximum
   for an authorization field). The two `AUTHORITY-CHECK` statements in
-  `z2ui5_cl_config_service` currently name `ID 'CONFIG_TYPE'`. That mismatch
-  is known and open. Fix it on a system where the check can be tried, not
-  blind.
+  `z2ui5_cl_config_service` currently name `ID 'CONFIG_TYPE'`, a field the
+  object does not have. For such a field the check is not possible and
+  `sy-subrc` is 4, so every user is denied. A fix is proposed in
+  [#7](https://github.com/abap2UI5-addons/config-management/pull/7): it
+  names `CONFIG_TYP` in both checks and has not been tried on a system yet.
+  Test it on a system before merging.
 
 ## Dependencies
 
@@ -98,12 +101,15 @@ request, weekly, and by hand. `npm test` is an alias of `npm run check`: the
 ABAP here is checked, not executed.
 
 This repository has no abap2UI5-linter gate, no ABAP Cloud lint and no 702
-downport workflow. The README's "automatic 702 downporting" has nothing here
-behind it yet.
+downport workflow. The code is written for ABAP 7.50, and the README says
+so. Don't claim a 702 version anywhere until a workflow builds one.
 
 ## Conventions
 
-- All text files are LF-only.
+- All text files are LF-only, enforced by `.gitattributes`.
+- Dependabot (`.github/dependabot.yml`) groups npm and GitHub Actions
+  updates into one pull request each. Third-party actions are pinned to a
+  commit SHA, with the version in a trailing comment.
 - The ecosystem-wide rules (workflow and npm-script naming, toolchain
   versions, which documentation files exist, commit style) live in
   [CONVENTIONS.md](https://github.com/abap2UI5/abap2UI5/blob/main/.github/shared/CONVENTIONS.md)
