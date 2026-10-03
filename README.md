@@ -1,6 +1,6 @@
 # config-management
 
-This enhancement replaces hard-coded HTTP handler configurations with a flexible, database-driven configuration system that allows runtime customization of UI5 application settings.  
+An addon for [abap2UI5](https://github.com/abap2UI5/abap2UI5) that stores the settings of the abap2UI5 page - theme, UI5 bootstrap source, custom CSS, Content-Security-Policy - in database tables instead of in code, with a popup app to edit them. It is for abap2UI5 administrators who want to change those settings at runtime without touching the HTTP handler. This is a **source** repository: it is installed with abapGit next to abap2UI5, and changes are made here through pull requests that CI checks with abaplint.
 
 ## Installation
 
@@ -94,7 +94,7 @@ Open the configuration app like any abap2UI5 app - `?app_start=z2ui5_cl_app_icf_
 - **Z2UI5_CX_CONFIG_ERROR**: Exception class for configuration errors  
   
 ## Security & Authorization:  
-- **Z2UI5_CONF**: Authorization object with ACTVT and CONFIG_TYPE fields  
+- **Z2UI5_CONF**: Authorization object with the fields ACTVT and CONFIG_TYP  
 - Master user concept for sensitive configurations (UI5_SRC, CSP_POLICY)  
 - Configuration locking mechanism for system-critical settings  
   
@@ -107,7 +107,7 @@ Open the configuration app like any abap2UI5 app - `?app_start=z2ui5_cl_app_icf_
 - **CSP_POLICY**: Content Security Policy (admin-only) - the complete `<meta http-equiv="Content-Security-Policy" ...>` tag  
   
 ## Technical Implementation:  
-- ABAP 7.30+ compatible with proper error handling  
+- ABAP 7.50: the code uses 7.40 syntax (inline declarations, `NEW`, `COND`, `VALUE`) and abaplint checks it at `v750` (`abaplint.jsonc`)  
 - Efficient caching strategy to minimize database calls    
 - Theme preview through the whitelisted frontend action `THEMING` / `setTheme` (`client->cs_event-control_global`) - abap2UI5 no longer runs raw JavaScript such as `sap.ui.getCore().applyTheme()`. It needs UI5 1.118 or later; on an older release the saved theme applies with the next page load  
 - Released abap2UI5 API (`src/02`) only: views built with `z2ui5_cl_ui5_view_builder`, no frozen `src/99` classes such as `z2ui5_cl_xml_view` or `z2ui5_cl_pop_to_select`  
@@ -124,5 +124,4 @@ This enhancement significantly improves the flexibility and maintainability
 of abap2UI5 installations by moving configuration from code to database,  
 while maintaining full backward compatibility.  
   
-Tested on: ABAP 7.30  
-Target: main branch (ABAP 7.5+) with automatic 702 downporting
+The code is written for ABAP 7.50 and is syntax-checked at that release on every pull request. There is no downported 7.02 version: no 702 branch, and no workflow that builds one.
