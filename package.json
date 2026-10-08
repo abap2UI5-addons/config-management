@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/abap2UI5-addons/config-management#readme",
   "devDependencies": {
-    "@abaplint/cli": "^2.120.60"
+    "@abaplint/cli": "^2.120.71"
   },
   "engines": {
     "node": ">=22"
