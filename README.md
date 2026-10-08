@@ -1,12 +1,56 @@
 # config-management
 
-An addon for [abap2UI5](https://github.com/abap2UI5/abap2UI5) that stores the settings of the abap2UI5 page - theme, UI5 bootstrap source, custom CSS, Content-Security-Policy - in database tables instead of in code, with a popup app to edit them. It is for abap2UI5 administrators who want to change those settings at runtime without touching the HTTP handler. This is a **source** repository: it is installed with abapGit next to abap2UI5, and changes are made here through pull requests that CI checks with abaplint.
+[![abap2UI5-addons](https://img.shields.io/badge/abap2UI5--addons-app-1873b4)](https://github.com/abap2UI5-addons)
+[![ABAP](https://img.shields.io/badge/ABAP-Standard%20%E2%89%A5%207.50-blue)](#installation)
+[![abap2UI5](https://img.shields.io/badge/requires-abap2UI5-blue)](https://github.com/abap2UI5/abap2UI5)
+[![License](https://img.shields.io/github/license/abap2UI5-addons/config-management)](LICENSE)
+<br>
+[![ABAP Standard](https://img.shields.io/github/actions/workflow/status/abap2UI5-addons/config-management/abap-standard.yaml?branch=main&label=ABAP%20Standard)](https://github.com/abap2UI5-addons/config-management/actions/workflows/abap-standard.yaml)
+
+**Store the settings of the abap2UI5 page in database tables instead of in
+code.** Theme, UI5 bootstrap source, custom CSS and Content-Security-Policy
+are kept in tables and edited in a popup app; a user exit of your own applies
+them to every page abap2UI5 serves. For abap2UI5 administrators who want to
+change those settings at runtime without touching the HTTP handler.
+
+> Part of [abap2UI5-addons](https://github.com/abap2UI5-addons) - addons and apps for [abap2UI5](https://github.com/abap2UI5/abap2UI5), installed with [abapGit](https://abapgit.org).
+
+![466231499-ebaa079d-8f53-483f-be75-e40e9a4dc7c9](https://github.com/user-attachments/assets/d2b1d0ba-4343-47b1-96f4-ff53c3a5e4d7)
+
+## Why
+
+The settings of the abap2UI5 page usually live in code. Changing the theme or
+the UI5 source then means changing the HTTP handler or the user exit.
+config-management moves them to the database:
+
+- Eliminates need to modify HTTP handler code for configuration changes
+- Enables per-user customization (themes, custom CSS, etc.)
+- Provides secure admin-only controls for system-level settings
+- Maintains framework performance through intelligent caching
+- Supports UI5 theme compatibility validation
+
+This enhancement significantly improves the flexibility and maintainability
+of abap2UI5 installations by moving configuration from code to database,
+while maintaining full backward compatibility.
 
 ## Installation
 
-Requires abap2UI5 1.145.0 or later. Install this repository with abapGit next to abap2UI5 - the HTTP handler stays as it is.
+**Requirements**
 
-abap2UI5 reads the settings of its page from its user exit, `z2ui5_if_ui5_exit`. Implement the interface in a class of your own - abap2UI5 finds the class by the interface, there is nothing to register - and let it apply the stored configuration:
+- Standard ABAP 7.50 or higher - the code is written for ABAP 7.50 and is
+  syntax-checked at that release on every pull request. There is no downported
+  7.02 version: no 702 branch, and no workflow that builds one.
+- [abap2UI5](https://github.com/abap2UI5/abap2UI5) 1.145.0 or later
+
+**Steps** - with [abapGit](https://abapgit.org), in this order:
+
+1. [abap2UI5](https://github.com/abap2UI5/abap2UI5)
+2. this repository (branch `main`) next to abap2UI5 - the HTTP handler stays
+   as it is
+3. Connect the user exit. abap2UI5 reads the settings of its page from its
+   user exit, `z2ui5_if_ui5_exit`. Implement the interface in a class of your
+   own - abap2UI5 finds the class by the interface, there is nothing to
+   register - and let it apply the stored configuration:
 ```abap
 CLASS zcl_my_abap2ui5_exit DEFINITION PUBLIC FINAL CREATE PUBLIC.
   PUBLIC SECTION.
@@ -58,23 +102,32 @@ client->follow_up_action( val   = client->cs_event-set_title
                           t_arg = VALUE #( ( z2ui5_cl_config_service=>get_config( `APP_TITLE` ) ) ) ).
 ```
 
-Open the configuration app like any abap2UI5 app - `?app_start=z2ui5_cl_app_icf_config` on your abap2UI5 ICF path, or its class name on the abap2UI5 start page. It fills the configuration tables with their defaults on its first start.
+**Start** - open the configuration app like any abap2UI5 app -
+`?app_start=z2ui5_cl_app_icf_config` on your abap2UI5 ICF path, or its class
+name on the abap2UI5 start page. It fills the configuration tables with their
+defaults on its first start.
 
-## Demo
+## Usage
 
-![466231499-ebaa079d-8f53-483f-be75-e40e9a4dc7c9](https://github.com/user-attachments/assets/d2b1d0ba-4343-47b1-96f4-ff53c3a5e4d7)
+### Configurable parameters
 
+- **THEME**: UI5 theme with version-specific compatibility  
+- **APP_TITLE**: Application title - stored for apps to set as tab title, the exit has no title field (see [Installation](#installation))  
+- **UI5_SRC**: UI5 bootstrap source URL (admin-only)  
+- **DEBUG_MODE**: Debug mode toggle  
+- **STYLES_CSS**: Custom CSS injection  
+- **CSP_POLICY**: Content Security Policy (admin-only) - the complete `<meta http-equiv="Content-Security-Policy" ...>` tag  
 
-## Information
+## Components
 
-### Core Configuration Service  
+### Core Configuration Service
 - **z2ui5_cl_config_service**: Central service for managing application configurations  
   - User-specific and global configuration support  
   - In-memory caching for performance  
   - Authority-based access control (master user vs regular user)  
   - Automatic fallback to framework defaults  
   
-### Configuration App  
+### Configuration App
 - **z2ui5_cl_app_icf_config**: The configuration popup  
   - Theme selection from the themes of the running UI5 release (`Z2UI5_THEMES`)  
   - Real-time theme preview with global application, reverted on Cancel  
@@ -82,46 +135,42 @@ Open the configuration app like any abap2UI5 app - `?app_start=z2ui5_cl_app_icf_
   - Role-based field visibility (admin-only fields)  
   - Automatic initialization of default configurations  
   
-### User Exit  
-- **your `z2ui5_if_ui5_exit` class** (see Installation): Applies the stored configuration to every page abap2UI5 serves  
+### User Exit
+- **your `z2ui5_if_ui5_exit` class** (see [Installation](#installation)): Applies the stored configuration to every page abap2UI5 serves  
   - Replaces hard-coded values with dynamic database lookups  
   - Keeps the abap2UI5 default wherever nothing is stored  
   
-## Database Objects:  
+### Database Objects
 - **Z2UI5_CONFIG**: Main configuration table with user/global scope support  
 - **Z2UI5_THEMES**: UI5 theme compatibility matrix by version  
 - **Z2UI5_CONF**: Message class for configuration-related messages  
 - **Z2UI5_CX_CONFIG_ERROR**: Exception class for configuration errors  
   
-## Security & Authorization:  
+## Security & Authorization
 - **Z2UI5_CONF**: Authorization object with the fields ACTVT and CONFIG_TYP  
 - Master user concept for sensitive configurations (UI5_SRC, CSP_POLICY)  
 - Configuration locking mechanism for system-critical settings  
   
-## Configurable Parameters:  
-- **THEME**: UI5 theme with version-specific compatibility  
-- **APP_TITLE**: Application title - stored for apps to set as tab title, the exit has no title field (see Installation)  
-- **UI5_SRC**: UI5 bootstrap source URL (admin-only)  
-- **DEBUG_MODE**: Debug mode toggle  
-- **STYLES_CSS**: Custom CSS injection  
-- **CSP_POLICY**: Content Security Policy (admin-only) - the complete `<meta http-equiv="Content-Security-Policy" ...>` tag  
-  
-## Technical Implementation:  
+## Technical Implementation
 - ABAP 7.50: the code uses 7.40 syntax (inline declarations, `NEW`, `COND`, `VALUE`) and abaplint checks it at `v750` (`abaplint.jsonc`)  
 - Efficient caching strategy to minimize database calls    
 - Theme preview through the whitelisted frontend action `THEMING` / `setTheme` (`client->cs_event-control_global`) - abap2UI5 no longer runs raw JavaScript such as `sap.ui.getCore().applyTheme()`. It needs UI5 1.118 or later; on an older release the saved theme applies with the next page load  
 - Released abap2UI5 API (`src/02`) only: views built with `z2ui5_cl_ui5_view_builder`, no frozen `src/99` classes such as `z2ui5_cl_xml_view` or `z2ui5_cl_pop_to_select`  
 - Transaction-safe with COMMIT WORK AND WAIT and rollback on errors  
-  
-## Benefits:  
-- Eliminates need to modify HTTP handler code for configuration changes  
-- Enables per-user customization (themes, custom CSS, etc.)  
-- Provides secure admin-only controls for system-level settings  
-- Maintains framework performance through intelligent caching  
-- Supports UI5 theme compatibility validation  
-  
-This enhancement significantly improves the flexibility and maintainability   
-of abap2UI5 installations by moving configuration from code to database,  
-while maintaining full backward compatibility.  
-  
-The code is written for ABAP 7.50 and is syntax-checked at that release on every pull request. There is no downported 7.02 version: no 702 branch, and no workflow that builds one.
+
+## Development
+
+```sh
+npm ci
+npm run check
+```
+
+`npm run check` runs what CI runs: abaplint at `v750` (`abap-standard.yaml`).
+
+## Contributing
+
+Issues and pull requests are welcome - see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+MIT - see [LICENSE](LICENSE).
