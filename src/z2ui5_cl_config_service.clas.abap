@@ -50,6 +50,13 @@ CREATE PUBLIC.
     CLASS-METHODS load_config_cache.
 
   PRIVATE SECTION.
+    "! abap_true when release (e.g. 1.69) is not newer than max (e.g. 1.71);
+    "! only the parts max names are compared, so max = 1 takes every 1.x
+    CLASS-METHODS check_release_up_to
+      IMPORTING release       TYPE clike
+                !max          TYPE clike
+      RETURNING VALUE(result) TYPE abap_bool.
+
     CLASS-METHODS save_config_to_db
       IMPORTING is_config TYPE ty_config
       RAISING   z2ui5_cx_config_error.
@@ -191,18 +198,59 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
         AND is_active   = 'X'
         INTO TABLE @rt_themes.
 
-    " Fallback to broader version match (e.g., '1.71%' or '1%')
+    " Fallback: a row names the release a theme is available from, so the
+    " themes of every row up to the running release apply - 1.71 gets what
+    " 1.65 and 1.69 list, a release newer than the last row gets them all.
+    " (A LIKE without a wildcard never matched more than the exact version.)
     IF rt_themes IS INITIAL.
-      SELECT theme FROM z2ui5_themes
-        WHERE ui5_version LIKE @lv_ui5_version
-          AND is_active      = 'X'
-           INTO TABLE @rt_themes.
+      SELECT ui5_version, theme FROM z2ui5_themes
+        WHERE is_active = 'X'
+        INTO TABLE @DATA(lt_rows).
+      LOOP AT lt_rows INTO DATA(ls_row).
+        IF check_release_up_to( release = ls_row-ui5_version
+                                max     = lv_ui5_version ) = abap_true
+           AND NOT line_exists( rt_themes[ table_line = ls_row-theme ] ).
+          APPEND CONV string( ls_row-theme ) TO rt_themes.
+        ENDIF.
+      ENDLOOP.
     ENDIF.
 
     " Fallback to default themes if none found
     IF rt_themes IS INITIAL.
       rt_themes = VALUE #( ( `sap_horizon` ) ( `sap_fiori_3` ) ( `sap_horizon_dark` ) ).
     ENDIF.
+  ENDMETHOD.
+
+  METHOD check_release_up_to.
+    DATA lt_release TYPE STANDARD TABLE OF string WITH EMPTY KEY.
+    DATA lt_max     TYPE STANDARD TABLE OF string WITH EMPTY KEY.
+    DATA lv_release TYPE i.
+    DATA lv_max     TYPE i.
+
+    SPLIT condense( release ) AT '.' INTO TABLE lt_release.
+    SPLIT condense( max ) AT '.' INTO TABLE lt_max.
+
+    result = abap_true.
+    LOOP AT lt_max INTO DATA(lv_max_part).
+      DATA(lv_index) = sy-tabix.
+      TRY.
+          lv_max = lv_max_part.
+          READ TABLE lt_release INTO DATA(lv_release_part) INDEX lv_index.
+          IF sy-subrc <> 0.
+            lv_release_part = `0`.
+          ENDIF.
+          lv_release = lv_release_part.
+        CATCH cx_sy_conversion_error.
+          result = abap_false.
+          RETURN.
+      ENDTRY.
+      IF lv_release < lv_max.
+        RETURN.
+      ELSEIF lv_release > lv_max.
+        result = abap_false.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD get_current_theme.
