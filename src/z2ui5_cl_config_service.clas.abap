@@ -164,9 +164,9 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
   METHOD get_theme_list.
     DATA lv_ui5_version TYPE string.
     DATA lv_result      TYPE string.
-    DATA lt_parts       TYPE TABLE OF string.
+    DATA lt_parts       TYPE string_table.
 
-    " Normalize UI5 version (e.g., '1.71.22' → '1.71', fallback to '1' for broad match)
+    " Normalize UI5 version (e.g., '1.71.22' -> '1.71', fallback to '1' for broad match)
     lv_ui5_version = iv_ui5_version.
     IF lv_ui5_version IS INITIAL.
       lv_ui5_version = '1'. " Broad match for all versions
@@ -359,9 +359,7 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     APPEND ls_config TO lt_default_configs.
 
     " Insert configurations
-    LOOP AT lt_default_configs INTO ls_config.
-      MODIFY z2ui5_config FROM @ls_config.
-    ENDLOOP.
+    MODIFY z2ui5_config FROM TABLE @lt_default_configs.
 
     " Initialize themes based on UI5 compatibility matrix
     " For themes, create a structure and populate it
