@@ -23,7 +23,7 @@ CLASS z2ui5_cl_app_icf_config DEFINITION
         csp_policy TYPE string,
       END OF ms_config.
 
-    DATA mt_all_configs TYPE z2ui5_cl_config_service=>ty_t_config.
+    DATA mt_all_configs TYPE z2ui5_cl_config_service=>ty_t_config ##NEEDED.
     " the items of the theme Select - the themes of the running UI5 release
     DATA mt_themes      TYPE ty_t_themes.
 
@@ -352,7 +352,6 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD z2ui5_on_event.
-    DATA li_app TYPE REF TO z2ui5_if_app.
 
     CASE client->get( )-event.
 
