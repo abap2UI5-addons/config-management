@@ -68,13 +68,12 @@ Everything is in `src/`, one package:
   from anyone but a master user. Do not widen either.
 - **Name the authorization field as the object defines it.**
   `Z2UI5_CONF`'s second field is `CONFIG_TYP` (10 characters, the maximum
-  for an authorization field). The two `AUTHORITY-CHECK` statements in
-  `z2ui5_cl_config_service` currently name `ID 'CONFIG_TYPE'`, a field the
-  object does not have. For such a field the check is not possible and
-  `sy-subrc` is 4, so every user is denied. A fix is proposed in
-  [#7](https://github.com/abap2UI5-addons/config-management/pull/7): it
-  names `CONFIG_TYP` in both checks and has not been tried on a system yet.
-  Test it on a system before merging.
+  for an authorization field), and both `AUTHORITY-CHECK` statements in
+  `z2ui5_cl_config_service` name `ID 'CONFIG_TYP'`. Until
+  [#7](https://github.com/abap2UI5-addons/config-management/pull/7) they
+  named `ID 'CONFIG_TYPE'`, a field the object does not have: for such a
+  field the check is not possible and `sy-subrc` is 4, so every user was
+  denied. Do not rename it back.
 
 ## Dependencies
 
