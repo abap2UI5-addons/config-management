@@ -132,6 +132,9 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     ASSIGN gt_config_cache[ config_key = iv_key
                             user_id    = iv_user_id ] TO FIELD-SYMBOL(<ls_config>).
     IF sy-subrc = 0.
+      " MODIFY writes the whole row - keep who created it and when
+      ls_config-created_by = <ls_config>-created_by.
+      ls_config-created_at = <ls_config>-created_at.
       <ls_config>-config_value = iv_value.
       <ls_config>-description  = iv_description.
       <ls_config>-config_type  = iv_type.
