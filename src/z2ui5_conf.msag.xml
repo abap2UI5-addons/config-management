@@ -20,11 +20,6 @@
      <MSGNR>002</MSGNR>
      <TEXT>Failed to save configuration to database</TEXT>
     </T100>
-    <T100>
-     <SPRSL>E</SPRSL>
-     <ARBGB>Z2UI5_CONF</ARBGB>
-     <MSGNR>003</MSGNR>
-    </T100>
    </T100>
   </asx:values>
  </asx:abap>

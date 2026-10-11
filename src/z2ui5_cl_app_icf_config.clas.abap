@@ -107,8 +107,10 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
         z2ui5_cl_config_service=>load_config_cache( ).
 
         client->message_toast_display( 'Configuration saved successfully' ).
+        leave_deferred( ).
 
       CATCH cx_root INTO DATA(lx_error).
+        " the popup stays open with the input, so the user can correct it or cancel
         ROLLBACK WORK.
         client->message_box_display( text = |Error saving configuration: { lx_error->get_text( ) }|
                                      type = 'error' ).
@@ -371,7 +373,6 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
 
       WHEN 'CONFIG_SAVE'.
         save_all_configs( ).
-        leave_deferred( ).
 
       WHEN 'CLOSE_CONFIG'.
         " Reset theme to saved value if user cancels without saving
