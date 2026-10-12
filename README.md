@@ -113,10 +113,10 @@ defaults on its first start.
 
 - **THEME**: UI5 theme with version-specific compatibility  
 - **APP_TITLE**: Application title - stored for apps to set as tab title, the exit has no title field (see [Installation](#installation))  
-- **UI5_SRC**: UI5 bootstrap source URL (admin-only)  
+- **UI5_SRC**: UI5 bootstrap source URL (admin-only, one value for all users)  
 - **DEBUG_MODE**: Debug mode toggle  
 - **STYLES_CSS**: Custom CSS injection  
-- **CSP_POLICY**: Content Security Policy (admin-only) - the complete `<meta http-equiv="Content-Security-Policy" ...>` tag  
+- **CSP_POLICY**: Content Security Policy (admin-only, one value for all users) - the complete `<meta http-equiv="Content-Security-Policy" ...>` tag  
 
 ## Components
 

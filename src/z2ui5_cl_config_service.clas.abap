@@ -50,6 +50,13 @@ CREATE PUBLIC.
     CLASS-METHODS load_config_cache.
 
   PRIVATE SECTION.
+    "! abap_true for the master-user settings UI5_SRC and CSP_POLICY: they
+    "! are system-wide - stored once, without a user, locked - and a user
+    "! value is never read for them
+    CLASS-METHODS is_system_wide
+      IMPORTING iv_key        TYPE clike
+      RETURNING VALUE(result) TYPE abap_bool.
+
     "! abap_true when release (e.g. 1.69) is not newer than max (e.g. 1.71);
     "! only the parts max names are compared, so max = 1 takes every 1.x
     CLASS-METHODS check_release_up_to
@@ -78,12 +85,16 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
       load_config_cache( ).
     ENDIF.
 
-    " Try user-specific configuration first
-    READ TABLE gt_config_cache INTO ls_config WITH KEY config_key = iv_key
-                                                       user_id    = iv_user_id.
-    IF sy-subrc = 0.
-      rv_value = ls_config-config_value.
-      RETURN.
+    " Try user-specific configuration first - not for a system-wide setting,
+    " where a user row (e.g. one saved before these were stored globally)
+    " must not override what the master user set for everybody
+    IF is_system_wide( iv_key ) = abap_false.
+      READ TABLE gt_config_cache INTO ls_config WITH KEY config_key = iv_key
+                                                         user_id    = iv_user_id.
+      IF sy-subrc = 0.
+        rv_value = ls_config-config_value.
+        RETURN.
+      ENDIF.
     ENDIF.
 
     " Fallback to global configuration
@@ -112,6 +123,17 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
       load_config_cache( ).
     ENDIF.
 
+    " A system-wide setting is the master user's alone, locked or not, and it
+    " is stored once for everybody (no user) and stays locked
+    DATA(lv_system_wide) = is_system_wide( iv_key ).
+    IF lv_system_wide = abap_true AND is_master_user( ) = ''.
+      z2ui5_cx_config_error=>raise_config_locked( ).
+    ENDIF.
+    DATA lv_user_id TYPE z2ui5_config-user_id.
+    IF lv_system_wide = abap_false.
+      lv_user_id = iv_user_id.
+    ENDIF.
+
     " Check if configuration is locked and user is not a master-user
     READ TABLE gt_config_cache INTO DATA(ls_existing) WITH KEY config_key = iv_key
                                                                user_id    = ''.
@@ -120,17 +142,17 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     ENDIF.
 
     ls_config-config_key   = iv_key.
-    ls_config-user_id      = iv_user_id.
+    ls_config-user_id      = lv_user_id.
     ls_config-config_value = iv_value.
     ls_config-description  = iv_description.
     ls_config-config_type  = iv_type.
     ls_config-is_active    = 'X'.
-    ls_config-is_locked    = ''.
+    ls_config-is_locked    = COND #( WHEN lv_system_wide = abap_true THEN 'X' ).
     ls_config-changed_by   = sy-uname.
     GET TIME STAMP FIELD ls_config-changed_at.
 
     ASSIGN gt_config_cache[ config_key = iv_key
-                            user_id    = iv_user_id ] TO FIELD-SYMBOL(<ls_config>).
+                            user_id    = lv_user_id ] TO FIELD-SYMBOL(<ls_config>).
     IF sy-subrc = 0.
       " MODIFY writes the whole row - keep who created it and when
       ls_config-created_by = <ls_config>-created_by.
@@ -138,6 +160,7 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
       <ls_config>-config_value = iv_value.
       <ls_config>-description  = iv_description.
       <ls_config>-config_type  = iv_type.
+      <ls_config>-is_locked    = ls_config-is_locked.
       <ls_config>-changed_by   = sy-uname.
       GET TIME STAMP FIELD <ls_config>-changed_at.
     ELSE.
@@ -259,6 +282,10 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
   METHOD get_current_theme.
     rv_theme = get_config( iv_key     = 'THEME'
                            iv_user_id = iv_user_id ).
+  ENDMETHOD.
+
+  METHOD is_system_wide.
+    result = xsdbool( iv_key = 'UI5_SRC' OR iv_key = 'CSP_POLICY' ).
   ENDMETHOD.
 
   METHOD is_master_user.
