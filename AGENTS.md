@@ -30,7 +30,7 @@ Everything is in `src/`, one package:
 
 | Object | |
 |---|---|
-| `z2ui5_cl_config_service` | The service: `get_config` (user value, then global value, then default), `set_config`, `get_current_theme`, `get_theme_list`, `initialize_default_configs`, `is_master_user`, `check_config_authority`. Values are cached in `gt_config_cache` |
+| `z2ui5_cl_config_service` | The service: `get_config` (user value, then global value, then default; global only for `UI5_SRC` and `CSP_POLICY`), `set_config`, `get_current_theme`, `get_theme_list`, `initialize_default_configs`, `is_master_user`, `check_config_authority`. Values are cached in `gt_config_cache` |
 | `z2ui5_cl_app_icf_config` | The configuration app (`z2ui5_if_app`), shown as a popup |
 | `z2ui5_cx_config_error` | Exception class of the service |
 | `Z2UI5_CONFIG` | Configuration table, keyed by client, `CONFIG_KEY` and `USER_ID` (empty = global) |
@@ -66,6 +66,12 @@ Everything is in `src/`, one package:
   (authorization object `Z2UI5_CONF` with `ACTVT` `02`). Everyone else sees
   them read-only. `set_config` refuses a change to a locked global entry
   from anyone but a master user. Do not widen either.
+- **`UI5_SRC` and `CSP_POLICY` are system-wide.** They decide how every
+  page boots, so they exist once, for everybody: `set_config` stores them
+  without a user (whatever `iv_user_id` says), keeps them locked and takes
+  them from master users only, and `get_config` reads only the global
+  value for them. Earlier versions saved a master user's change for that
+  master user alone; such a user row is ignored now.
 - **Name the authorization field as the object defines it.**
   `Z2UI5_CONF`'s second field is `CONFIG_TYP` (10 characters, the maximum
   for an authorization field), and both `AUTHORITY-CHECK` statements in
