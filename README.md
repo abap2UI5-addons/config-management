@@ -45,6 +45,8 @@ while maintaining full backward compatibility.
 
 **Renamed (2026-11).** The second field of the authorization object `Z2UI5_CONF` is `Z2UI5_CTYP` now; it was `CONFIG_TYP`, outside the customer namespace. On a system that has the addon already, the pull changes the object: open the roles that contain `Z2UI5_CONF` in `PFCG`, maintain the values for `Z2UI5_CTYP` (the same values `CONFIG_TYP` had - the configuration keys, or `*` for master users) and generate the profiles. Until then every check of the addon is denied. Then delete the field `CONFIG_TYP` in `SU20`.
 
+**Renamed (2026-11).** The configuration app `z2ui5_cl_app_icf_config` is `z2ui5_cl_config_app` now, in the addon's own `config` segment. abap2UI5's start page opens the new name and falls back to the old one from its next release on; an abap2UI5 from before knows the old name only. After the pull abapGit lists the old class as deleted in the repository: delete it once abap2UI5 is updated, and update `?app_start=` links.
+
 **Steps** - with [abapGit](https://abapgit.org), in this order:
 
 1. [abap2UI5](https://github.com/abap2UI5/abap2UI5)
@@ -106,7 +108,7 @@ client->follow_up_action( val   = client->cs_event-set_title
 ```
 
 **Start** - open the configuration app like any abap2UI5 app -
-`?app_start=z2ui5_cl_app_icf_config` on your abap2UI5 ICF path, or its class
+`?app_start=z2ui5_cl_config_app` on your abap2UI5 ICF path, or its class
 name on the abap2UI5 start page. It fills the configuration tables with their
 defaults on its first start.
 
@@ -131,7 +133,7 @@ defaults on its first start.
   - Automatic fallback to framework defaults  
   
 ### Configuration App
-- **z2ui5_cl_app_icf_config**: The configuration popup  
+- **z2ui5_cl_config_app**: The configuration popup  
   - Theme selection from the themes of the running UI5 release (`Z2UI5_THEMES`)  
   - Real-time theme preview with global application, reverted on Cancel  
   - Form-based editing for all configurable parameters  

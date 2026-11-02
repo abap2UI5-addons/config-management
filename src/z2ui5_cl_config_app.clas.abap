@@ -1,4 +1,4 @@
-CLASS z2ui5_cl_app_icf_config DEFINITION
+CLASS z2ui5_cl_config_app DEFINITION
   PUBLIC FINAL
   CREATE PUBLIC.
 
@@ -28,7 +28,7 @@ CLASS z2ui5_cl_app_icf_config DEFINITION
     DATA mt_themes      TYPE ty_t_themes.
 
     CLASS-METHODS factory
-      RETURNING VALUE(result) TYPE REF TO z2ui5_cl_app_icf_config.
+      RETURNING VALUE(result) TYPE REF TO z2ui5_cl_config_app.
 
     METHODS z2ui5_on_init.
     METHODS z2ui5_on_event.
@@ -50,7 +50,7 @@ CLASS z2ui5_cl_app_icf_config DEFINITION
 ENDCLASS.
 
 
-CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
+CLASS z2ui5_cl_config_app IMPLEMENTATION.
   METHOD factory.
     result = NEW #( ).
   ENDMETHOD.

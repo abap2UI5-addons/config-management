@@ -31,7 +31,7 @@ Everything is in `src/`, one package:
 | Object | |
 |---|---|
 | `z2ui5_cl_config_service` | The service: `get_config` (user value, then global value, then default; global only for `UI5_SRC` and `CSP_POLICY`), `set_config`, `get_current_theme`, `get_theme_list`, `initialize_default_configs`, `is_master_user`, `check_config_authority`. Values are cached in `gt_config_cache` |
-| `z2ui5_cl_app_icf_config` | The configuration app (`z2ui5_if_app`), shown as a popup |
+| `z2ui5_cl_config_app` | The configuration app (`z2ui5_if_app`), shown as a popup |
 | `z2ui5_cx_config_error` | Exception class of the service |
 | `Z2UI5_CONFIG` | Configuration table, keyed by client, `CONFIG_KEY` and `USER_ID` (empty = global) |
 | `Z2UI5_THEMES` | UI5 themes by UI5 version |
@@ -41,9 +41,10 @@ Everything is in `src/`, one package:
 
 ## Rules
 
-- **Keep the name and shape of `z2ui5_cl_app_icf_config`.** abap2UI5's own
+- **Keep the name and shape of `z2ui5_cl_config_app`.** abap2UI5's own
   start page opens it by name: `z2ui5_cl_ui5_app_start` holds the constant
-  `c_class_icf_config` = `Z2UI5_CL_APP_ICF_CONFIG`, runs
+  `c_class_icf_config` = `Z2UI5_CL_CONFIG_APP` (and falls back to
+  `Z2UI5_CL_APP_ICF_CONFIG`, the class's name up to 2026-11), runs
   `CREATE OBJECT ... TYPE (c_class_icf_config)` with no parameters, and calls
   `nav_app_call` with the result. The name is listed in abap2UI5's
   `dynamic-name-gate.mjs` as one that ships here. A rename, a mandatory
