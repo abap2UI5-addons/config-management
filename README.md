@@ -43,6 +43,8 @@ while maintaining full backward compatibility.
   `main` on every push - pull abap2UI5 from their `702` branches as well
 - [abap2UI5](https://github.com/abap2UI5/abap2UI5) 1.145.0 or later
 
+**Renamed (2026-11).** The second field of the authorization object `Z2UI5_CONF` is `Z2UI5_CTYP` now; it was `CONFIG_TYP`, outside the customer namespace. On a system that has the addon already, the pull changes the object: open the roles that contain `Z2UI5_CONF` in `PFCG`, maintain the values for `Z2UI5_CTYP` (the same values `CONFIG_TYP` had - the configuration keys, or `*` for master users) and generate the profiles. Until then every check of the addon is denied. Then delete the field `CONFIG_TYP` in `SU20`.
+
 **Steps** - with [abapGit](https://abapgit.org), in this order:
 
 1. [abap2UI5](https://github.com/abap2UI5/abap2UI5)
@@ -148,7 +150,7 @@ defaults on its first start.
 - **Z2UI5_CX_CONFIG_ERROR**: Exception class for configuration errors  
   
 ## Security & Authorization
-- **Z2UI5_CONF**: Authorization object with the fields ACTVT and CONFIG_TYP  
+- **Z2UI5_CONF**: Authorization object with the fields ACTVT and Z2UI5_CTYP (the configuration key; named CONFIG_TYP up to 2026-11 - see Installation)  
 - Master user concept for sensitive configurations (UI5_SRC, CSP_POLICY)  
 - Configuration locking mechanism for system-critical settings  
   

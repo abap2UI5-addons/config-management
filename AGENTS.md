@@ -36,8 +36,8 @@ Everything is in `src/`, one package:
 | `Z2UI5_CONFIG` | Configuration table, keyed by client, `CONFIG_KEY` and `USER_ID` (empty = global) |
 | `Z2UI5_THEMES` | UI5 themes by UI5 version |
 | `Z2UI5_CONF` (MSAG) | Message class |
-| `Z2UI5_CONF` (SUSO) | Authorization object, fields `ACTVT` and `CONFIG_TYP` |
-| `CONFIG_TYP` (AUTH) | The authorization field, `CHAR10` |
+| `Z2UI5_CONF` (SUSO) | Authorization object, fields `ACTVT` and `Z2UI5_CTYP` |
+| `Z2UI5_CTYP` (AUTH) | The authorization field, `CHAR10` |
 
 ## Rules
 
@@ -73,13 +73,15 @@ Everything is in `src/`, one package:
   value for them. Earlier versions saved a master user's change for that
   master user alone; such a user row is ignored now.
 - **Name the authorization field as the object defines it.**
-  `Z2UI5_CONF`'s second field is `CONFIG_TYP` (10 characters, the maximum
+  `Z2UI5_CONF`'s second field is `Z2UI5_CTYP` (10 characters, the maximum
   for an authorization field), and both `AUTHORITY-CHECK` statements in
-  `z2ui5_cl_config_service` name `ID 'CONFIG_TYP'`. Until
+  `z2ui5_cl_config_service` name `ID 'Z2UI5_CTYP'`. Until
   [#7](https://github.com/abap2UI5-addons/config-management/pull/7) they
   named `ID 'CONFIG_TYPE'`, a field the object does not have: for such a
   field the check is not possible and `sy-subrc` is 4, so every user was
-  denied. Do not rename it back.
+  denied. Up to 2026-11 the field itself was `CONFIG_TYP`, outside the
+  customer namespace (a customer authorization field starts with Y or Z).
+  Field, object and checks change together, never one of them alone.
 
 ## Dependencies
 
