@@ -433,9 +433,15 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
     " required sap/ui/core/Theming, which exists from UI5 1.118 on: on an older
     " release the frontend logs "not available" and the preview stays out,
     " while a saved theme still applies with the next page load (user exit).
+    " The arguments are appended one by one, not built with VALUE #( ): the
+    " 702 downport cannot rewrite a VALUE #( ) in this call.
+    DATA lt_arg TYPE string_table.
+    " abap2ui5lint-disable-next-line frontend-action-too-new -- live preview only; below UI5 1.118 the saved theme applies on the next page load
+    APPEND `THEMING` TO lt_arg.
+    APPEND `setTheme` TO lt_arg.
+    APPEND iv_theme TO lt_arg.
     client->follow_up_action( val   = client->cs_event-control_global
-                              " abap2ui5lint-disable-next-line frontend-action-too-new -- live preview only; below UI5 1.118 the saved theme applies on the next page load
-                              t_arg = VALUE #( ( `THEMING` ) ( `setTheme` ) ( iv_theme ) ) ).
+                              t_arg = lt_arg ).
 
   ENDMETHOD.
 
@@ -447,8 +453,11 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
     " roundtrip with the leave. This roundtrip sends them; the client timer
     " fires CONFIG_LEAVE right after it has been rendered, and that roundtrip
     " closes the popup and leaves.
+    DATA lt_arg TYPE string_table.
+    APPEND `CONFIG_LEAVE` TO lt_arg.
+    APPEND `0` TO lt_arg.
     client->follow_up_action( val   = client->cs_event-start_timer
-                              t_arg = VALUE #( ( `CONFIG_LEAVE` ) ( `0` ) ) ).
+                              t_arg = lt_arg ).
 
   ENDMETHOD.
 

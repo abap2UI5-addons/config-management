@@ -38,8 +38,9 @@ while maintaining full backward compatibility.
 **Requirements**
 
 - Standard ABAP 7.50 or higher - the code is written for ABAP 7.50 and is
-  syntax-checked at that release on every pull request. There is no downported
-  7.02 version: no 702 branch, and no workflow that builds one.
+  syntax-checked at that release on every pull request.
+- NetWeaver 7.02 - 7.40: the branch `702`, downported automatically from
+  `main` on every push - pull abap2UI5 from their `702` branches as well
 - [abap2UI5](https://github.com/abap2UI5/abap2UI5) 1.145.0 or later
 
 **Steps** - with [abapGit](https://abapgit.org), in this order:

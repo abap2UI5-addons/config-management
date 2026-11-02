@@ -191,6 +191,8 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     DATA lv_ui5_version TYPE string.
     DATA lv_result      TYPE string.
     DATA lt_parts       TYPE string_table.
+    DATA lv_part1       TYPE string.
+    DATA lv_part2       TYPE string.
 
     " Normalize UI5 version (e.g., '1.71.22' -> '1.71', fallback to '1' for broad match)
     lv_ui5_version = iv_ui5_version.
@@ -207,8 +209,8 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
 
       " If there are at least 3 parts (e.g., 1.120.32), take the first two
       IF lines( lt_parts ) >= 3.
-        READ TABLE lt_parts INTO DATA(lv_part1) INDEX 1.
-        READ TABLE lt_parts INTO DATA(lv_part2) INDEX 2.
+        READ TABLE lt_parts INTO lv_part1 INDEX 1.
+        READ TABLE lt_parts INTO lv_part2 INDEX 2.
         CONCATENATE lv_part1 lv_part2 INTO lv_result SEPARATED BY '.'.
       ELSE.
         lv_result = lv_ui5_version. " No patch version, keep as is

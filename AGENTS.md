@@ -105,9 +105,11 @@ npm run check   # abaplint ./abaplint.jsonc, at v750, 0 issues expected
 request, weekly, and by hand. `npm test` is an alias of `npm run check`: the
 ABAP here is checked, not executed.
 
-This repository has no abap2UI5-linter gate, no ABAP Cloud lint and no 702
-downport workflow. The code is written for ABAP 7.50, and the README says
-so. Don't claim a 702 version anywhere until a workflow builds one.
+This repository has no abap2UI5-linter gate and no ABAP Cloud lint. The code
+is written for ABAP 7.50. `publish-702` downports it on every push to `main`
+(`npm run auto_downport` against `.github/abaplint/abap_702.jsonc`) and writes
+the result to the `702` branch; `abap-702` lints that branch. Never commit to
+`702` by hand.
 
 ## Conventions
 
