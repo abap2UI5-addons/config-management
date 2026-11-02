@@ -47,6 +47,18 @@ while maintaining full backward compatibility.
 
 **Renamed (2026-11).** The configuration app `z2ui5_cl_app_icf_config` is `z2ui5_cl_config_app` now, in the addon's own `config` segment. abap2UI5's start page opens the new name and falls back to the old one from its next release on; an abap2UI5 from before knows the old name only. After the pull abapGit lists the old class as deleted in the repository: delete it once abap2UI5 is updated, and update `?app_start=` links.
 
+**Renumbered tables (2026-11).** The tables follow the numbering all addons share now: `Z2UI5_CONFIG` is `Z2UI5_T_29`, `Z2UI5_THEMES` is `Z2UI5_T_30`. The pull creates the new tables empty, and the data stays in the old ones. Copy it once per client before you delete an old table - for each pair, in a scratch report:
+
+```abap
+DATA lr_rows TYPE REF TO data.
+FIELD-SYMBOLS <rows> TYPE STANDARD TABLE.
+CREATE DATA lr_rows TYPE STANDARD TABLE OF ('Z2UI5_T_29').
+ASSIGN lr_rows->* TO <rows>.
+SELECT * FROM ('Z2UI5_CONFIG') INTO TABLE <rows>.
+MODIFY ('Z2UI5_T_29') FROM TABLE <rows>.
+COMMIT WORK.
+```
+
 **Steps** - with [abapGit](https://abapgit.org), in this order:
 
 1. [abap2UI5](https://github.com/abap2UI5/abap2UI5)
@@ -134,7 +146,7 @@ defaults on its first start.
   
 ### Configuration App
 - **z2ui5_cl_config_app**: The configuration popup  
-  - Theme selection from the themes of the running UI5 release (`Z2UI5_THEMES`)  
+  - Theme selection from the themes of the running UI5 release (`Z2UI5_T_30`)  
   - Real-time theme preview with global application, reverted on Cancel  
   - Form-based editing for all configurable parameters  
   - Role-based field visibility (admin-only fields)  
@@ -146,8 +158,8 @@ defaults on its first start.
   - Keeps the abap2UI5 default wherever nothing is stored  
   
 ### Database Objects
-- **Z2UI5_CONFIG**: Main configuration table with user/global scope support  
-- **Z2UI5_THEMES**: UI5 theme compatibility matrix by version  
+- **Z2UI5_T_29**: Main configuration table with user/global scope support  
+- **Z2UI5_T_30**: UI5 theme compatibility matrix by version  
 - **Z2UI5_CONF**: Message class for configuration-related messages  
 - **Z2UI5_CX_CONFIG_ERROR**: Exception class for configuration errors  
   

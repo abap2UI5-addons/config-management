@@ -33,8 +33,8 @@ Everything is in `src/`, one package:
 | `z2ui5_cl_config_service` | The service: `get_config` (user value, then global value, then default; global only for `UI5_SRC` and `CSP_POLICY`), `set_config`, `get_current_theme`, `get_theme_list`, `initialize_default_configs`, `is_master_user`, `check_config_authority`. Values are cached in `gt_config_cache` |
 | `z2ui5_cl_config_app` | The configuration app (`z2ui5_if_app`), shown as a popup |
 | `z2ui5_cx_config_error` | Exception class of the service |
-| `Z2UI5_CONFIG` | Configuration table, keyed by client, `CONFIG_KEY` and `USER_ID` (empty = global) |
-| `Z2UI5_THEMES` | UI5 themes by UI5 version |
+| `Z2UI5_T_29` | Configuration table, keyed by client, `CONFIG_KEY` and `USER_ID` (empty = global) |
+| `Z2UI5_T_30` | UI5 themes by UI5 version |
 | `Z2UI5_CONF` (MSAG) | Message class |
 | `Z2UI5_CONF` (SUSO) | Authorization object, fields `ACTVT` and `Z2UI5_CTYP` |
 | `Z2UI5_CTYP` (AUTH) | The authorization field, `CHAR10` |
