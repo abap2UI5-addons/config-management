@@ -218,28 +218,20 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
       " Input: '1.120.32' Result: lv_ui5_version = '1.120'
     ENDIF.
 
-    " Try exact version match
-    SELECT theme FROM z2ui5_t_30
-      WHERE ui5_version = @lv_ui5_version
-        AND is_active   = 'X'
-        INTO TABLE @rt_themes.
-
-    " Fallback: a row names the release a theme is available from, so the
-    " themes of every row up to the running release apply - 1.71 gets what
-    " 1.65 and 1.69 list, a release newer than the last row gets them all.
-    " (A LIKE without a wildcard never matched more than the exact version.)
-    IF rt_themes IS INITIAL.
-      SELECT ui5_version, theme FROM z2ui5_t_30
-        WHERE is_active = 'X'
-        INTO TABLE @DATA(lt_rows).
-      LOOP AT lt_rows INTO DATA(ls_row).
-        IF check_release_up_to( release = ls_row-ui5_version
-                                max     = lv_ui5_version ) = abap_true
-           AND NOT line_exists( rt_themes[ table_line = ls_row-theme ] ).
-          APPEND CONV string( ls_row-theme ) TO rt_themes.
-        ENDIF.
-      ENDLOOP.
-    ENDIF.
+    " A row names the release a theme is available from, so the themes of
+    " every row up to the running release apply - 1.71 gets what 1.65 and
+    " 1.69 list, a release newer than the last row gets them all. (An exact
+    " match alone would leave out every theme of an older row.)
+    SELECT ui5_version, theme FROM z2ui5_t_30
+      WHERE is_active = 'X'
+      INTO TABLE @DATA(lt_rows).
+    LOOP AT lt_rows INTO DATA(ls_row).
+      IF check_release_up_to( release = ls_row-ui5_version
+                              max     = lv_ui5_version ) = abap_true
+         AND NOT line_exists( rt_themes[ table_line = ls_row-theme ] ).
+        APPEND CONV string( ls_row-theme ) TO rt_themes.
+      ENDIF.
+    ENDLOOP.
 
     " Fallback to default themes if none found
     IF rt_themes IS INITIAL.
