@@ -31,19 +31,20 @@ Everything is in `src/`, one package:
 | Object | |
 |---|---|
 | `z2ui5_cl_config_service` | The service: `get_config` (user value, then global value, then default; global only for `UI5_SRC` and `CSP_POLICY`), `set_config`, `get_current_theme`, `get_theme_list`, `initialize_default_configs`, `is_master_user`, `check_config_authority`. Values are cached in `gt_config_cache` |
-| `z2ui5_cl_app_icf_config` | The configuration app (`z2ui5_if_app`), shown as a popup |
+| `z2ui5_cl_config_app` | The configuration app (`z2ui5_if_app`), shown as a popup |
 | `z2ui5_cx_config_error` | Exception class of the service |
-| `Z2UI5_CONFIG` | Configuration table, keyed by client, `CONFIG_KEY` and `USER_ID` (empty = global) |
-| `Z2UI5_THEMES` | UI5 themes by UI5 version |
+| `Z2UI5_T_29` | Configuration table, keyed by client, `CONFIG_KEY` and `USER_ID` (empty = global) |
+| `Z2UI5_T_30` | UI5 themes by UI5 version |
 | `Z2UI5_CONF` (MSAG) | Message class |
-| `Z2UI5_CONF` (SUSO) | Authorization object, fields `ACTVT` and `CONFIG_TYP` |
-| `CONFIG_TYP` (AUTH) | The authorization field, `CHAR10` |
+| `Z2UI5_CONF` (SUSO) | Authorization object, fields `ACTVT` and `Z2UI5_CTYP` |
+| `Z2UI5_CTYP` (AUTH) | The authorization field, `CHAR10` |
 
 ## Rules
 
-- **Keep the name and shape of `z2ui5_cl_app_icf_config`.** abap2UI5's own
+- **Keep the name and shape of `z2ui5_cl_config_app`.** abap2UI5's own
   start page opens it by name: `z2ui5_cl_ui5_app_start` holds the constant
-  `c_class_icf_config` = `Z2UI5_CL_APP_ICF_CONFIG`, runs
+  `c_class_icf_config` = `Z2UI5_CL_CONFIG_APP` (and falls back to
+  `Z2UI5_CL_APP_ICF_CONFIG`, the class's name up to 2026-11), runs
   `CREATE OBJECT ... TYPE (c_class_icf_config)` with no parameters, and calls
   `nav_app_call` with the result. The name is listed in abap2UI5's
   `dynamic-name-gate.mjs` as one that ships here. A rename, a mandatory
@@ -73,13 +74,15 @@ Everything is in `src/`, one package:
   value for them. Earlier versions saved a master user's change for that
   master user alone; such a user row is ignored now.
 - **Name the authorization field as the object defines it.**
-  `Z2UI5_CONF`'s second field is `CONFIG_TYP` (10 characters, the maximum
+  `Z2UI5_CONF`'s second field is `Z2UI5_CTYP` (10 characters, the maximum
   for an authorization field), and both `AUTHORITY-CHECK` statements in
-  `z2ui5_cl_config_service` name `ID 'CONFIG_TYP'`. Until
+  `z2ui5_cl_config_service` name `ID 'Z2UI5_CTYP'`. Until
   [#7](https://github.com/abap2UI5-addons/config-management/pull/7) they
   named `ID 'CONFIG_TYPE'`, a field the object does not have: for such a
   field the check is not possible and `sy-subrc` is 4, so every user was
-  denied. Do not rename it back.
+  denied. Up to 2026-11 the field itself was `CONFIG_TYP`, outside the
+  customer namespace (a customer authorization field starts with Y or Z).
+  Field, object and checks change together, never one of them alone.
 
 ## Dependencies
 
@@ -105,15 +108,17 @@ npm run check   # abaplint ./abaplint.jsonc, at v750, 0 issues expected
 request, weekly, and by hand. `npm test` is an alias of `npm run check`: the
 ABAP here is checked, not executed.
 
-This repository has no abap2UI5-linter gate, no ABAP Cloud lint and no 702
-downport workflow. The code is written for ABAP 7.50, and the README says
-so. Don't claim a 702 version anywhere until a workflow builds one.
+This repository has no abap2UI5-linter gate and no ABAP Cloud lint. The code
+is written for ABAP 7.50. `publish-702` downports it on every push to `main`
+(`npm run auto_downport` against `.github/abaplint/abap_702.jsonc`) and writes
+the result to the `702` branch; `abap-702` lints that branch. Never commit to
+`702` by hand.
 
 ## Conventions
 
 - All text files are LF-only, enforced by `.gitattributes`.
-- Dependabot (`.github/dependabot.yml`) groups npm and GitHub Actions
-  updates into one pull request each. Third-party actions are pinned to a
+- `bump-deps.yaml` moves every dependency once a month, on the last Sunday,
+  in one pull request (`.github/scripts/update-deps.mjs`). Third-party actions are pinned to a
   commit SHA, with the version in a trailing comment.
 - The ecosystem-wide rules (workflow and npm-script naming, toolchain
   versions, which documentation files exist, commit style) live in

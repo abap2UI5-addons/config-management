@@ -38,9 +38,26 @@ while maintaining full backward compatibility.
 **Requirements**
 
 - Standard ABAP 7.50 or higher - the code is written for ABAP 7.50 and is
-  syntax-checked at that release on every pull request. There is no downported
-  7.02 version: no 702 branch, and no workflow that builds one.
+  syntax-checked at that release on every pull request.
+- NetWeaver 7.02 - 7.40: the branch `702`, downported automatically from
+  `main` on every push - pull abap2UI5 from their `702` branches as well
 - [abap2UI5](https://github.com/abap2UI5/abap2UI5) 1.145.0 or later
+
+**Renamed (2026-11).** The second field of the authorization object `Z2UI5_CONF` is `Z2UI5_CTYP` now; it was `CONFIG_TYP`, outside the customer namespace. On a system that has the addon already, the pull changes the object: open the roles that contain `Z2UI5_CONF` in `PFCG`, maintain the values for `Z2UI5_CTYP` (the same values `CONFIG_TYP` had - the configuration keys, or `*` for master users) and generate the profiles. Until then every check of the addon is denied. Then delete the field `CONFIG_TYP` in `SU20`.
+
+**Renamed (2026-11).** The configuration app `z2ui5_cl_app_icf_config` is `z2ui5_cl_config_app` now, in the addon's own `config` segment. abap2UI5's start page opens the new name and falls back to the old one from its next release on; an abap2UI5 from before knows the old name only. After the pull abapGit lists the old class as deleted in the repository: delete it once abap2UI5 is updated, and update `?app_start=` links.
+
+**Renumbered tables (2026-11).** The tables follow the numbering all addons share now: `Z2UI5_CONFIG` is `Z2UI5_T_29`, `Z2UI5_THEMES` is `Z2UI5_T_30`. The pull creates the new tables empty, and the data stays in the old ones. Copy it once per client before you delete an old table - for each pair, in a scratch report:
+
+```abap
+DATA lr_rows TYPE REF TO data.
+FIELD-SYMBOLS <rows> TYPE STANDARD TABLE.
+CREATE DATA lr_rows TYPE STANDARD TABLE OF ('Z2UI5_T_29').
+ASSIGN lr_rows->* TO <rows>.
+SELECT * FROM ('Z2UI5_CONFIG') INTO TABLE <rows>.
+MODIFY ('Z2UI5_T_29') FROM TABLE <rows>.
+COMMIT WORK.
+```
 
 **Steps** - with [abapGit](https://abapgit.org), in this order:
 
@@ -103,7 +120,7 @@ client->follow_up_action( val   = client->cs_event-set_title
 ```
 
 **Start** - open the configuration app like any abap2UI5 app -
-`?app_start=z2ui5_cl_app_icf_config` on your abap2UI5 ICF path, or its class
+`?app_start=z2ui5_cl_config_app` on your abap2UI5 ICF path, or its class
 name on the abap2UI5 start page. It fills the configuration tables with their
 defaults on its first start.
 
@@ -128,8 +145,8 @@ defaults on its first start.
   - Automatic fallback to framework defaults  
   
 ### Configuration App
-- **z2ui5_cl_app_icf_config**: The configuration popup  
-  - Theme selection from the themes of the running UI5 release (`Z2UI5_THEMES`)  
+- **z2ui5_cl_config_app**: The configuration popup  
+  - Theme selection from the themes of the running UI5 release (`Z2UI5_T_30`)  
   - Real-time theme preview with global application, reverted on Cancel  
   - Form-based editing for all configurable parameters  
   - Role-based field visibility (admin-only fields)  
@@ -141,13 +158,13 @@ defaults on its first start.
   - Keeps the abap2UI5 default wherever nothing is stored  
   
 ### Database Objects
-- **Z2UI5_CONFIG**: Main configuration table with user/global scope support  
-- **Z2UI5_THEMES**: UI5 theme compatibility matrix by version  
+- **Z2UI5_T_29**: Main configuration table with user/global scope support  
+- **Z2UI5_T_30**: UI5 theme compatibility matrix by version  
 - **Z2UI5_CONF**: Message class for configuration-related messages  
 - **Z2UI5_CX_CONFIG_ERROR**: Exception class for configuration errors  
   
 ## Security & Authorization
-- **Z2UI5_CONF**: Authorization object with the fields ACTVT and CONFIG_TYP  
+- **Z2UI5_CONF**: Authorization object with the fields ACTVT and Z2UI5_CTYP (the configuration key; named CONFIG_TYP up to 2026-11 - see Installation)  
 - Master user concept for sensitive configurations (UI5_SRC, CSP_POLICY)  
 - Configuration locking mechanism for system-critical settings  
   

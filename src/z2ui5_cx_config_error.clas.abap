@@ -59,11 +59,17 @@ CLASS z2ui5_cx_config_error IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD raise_config_locked.
+    DATA lv_msg TYPE string.
+    " static reference for the where-used list of message 001
+    MESSAGE e001(z2ui5_conf) INTO lv_msg.
     RAISE EXCEPTION TYPE z2ui5_cx_config_error
       EXPORTING textid = config_locked.
   ENDMETHOD.
 
   METHOD raise_save_failed.
+    DATA lv_msg TYPE string.
+    " static reference for the where-used list of message 002
+    MESSAGE e002(z2ui5_conf) INTO lv_msg.
     RAISE EXCEPTION TYPE z2ui5_cx_config_error
       EXPORTING textid = save_failed.
   ENDMETHOD.

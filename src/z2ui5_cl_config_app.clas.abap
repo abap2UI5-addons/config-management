@@ -1,4 +1,4 @@
-CLASS z2ui5_cl_app_icf_config DEFINITION
+CLASS z2ui5_cl_config_app DEFINITION
   PUBLIC FINAL
   CREATE PUBLIC.
 
@@ -28,7 +28,7 @@ CLASS z2ui5_cl_app_icf_config DEFINITION
     DATA mt_themes      TYPE ty_t_themes.
 
     CLASS-METHODS factory
-      RETURNING VALUE(result) TYPE REF TO z2ui5_cl_app_icf_config.
+      RETURNING VALUE(result) TYPE REF TO z2ui5_cl_config_app.
 
     METHODS z2ui5_on_init.
     METHODS z2ui5_on_event.
@@ -50,7 +50,7 @@ CLASS z2ui5_cl_app_icf_config DEFINITION
 ENDCLASS.
 
 
-CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
+CLASS z2ui5_cl_config_app IMPLEMENTATION.
   METHOD factory.
     result = NEW #( ).
   ENDMETHOD.
@@ -153,11 +153,7 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
 
     " Debug mode handling
     lv_debug_value = z2ui5_cl_config_service=>get_config( 'DEBUG_MODE' ).
-    IF lv_debug_value = 'X' OR lv_debug_value = 'true' OR lv_debug_value = '1'.
-      ms_config-debug_mode = abap_true.
-    ELSE.
-      ms_config-debug_mode = abap_false.
-    ENDIF.
+    ms_config-debug_mode = xsdbool( lv_debug_value = 'X' OR lv_debug_value = 'true' OR lv_debug_value = '1' ).
 
     " the items of the theme Select
     themes_read( ).
@@ -433,9 +429,15 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
     " required sap/ui/core/Theming, which exists from UI5 1.118 on: on an older
     " release the frontend logs "not available" and the preview stays out,
     " while a saved theme still applies with the next page load (user exit).
+    " The arguments are appended one by one, not built with VALUE #( ): the
+    " 702 downport cannot rewrite a VALUE #( ) in this call.
+    DATA lt_arg TYPE string_table.
+    " abap2ui5lint-disable-next-line frontend-action-too-new -- live preview only; below UI5 1.118 the saved theme applies on the next page load
+    APPEND `THEMING` TO lt_arg.
+    APPEND `setTheme` TO lt_arg.
+    APPEND iv_theme TO lt_arg.
     client->follow_up_action( val   = client->cs_event-control_global
-                              " abap2ui5lint-disable-next-line frontend-action-too-new -- live preview only; below UI5 1.118 the saved theme applies on the next page load
-                              t_arg = VALUE #( ( `THEMING` ) ( `setTheme` ) ( iv_theme ) ) ).
+                              t_arg = lt_arg ).
 
   ENDMETHOD.
 
@@ -447,8 +449,11 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
     " roundtrip with the leave. This roundtrip sends them; the client timer
     " fires CONFIG_LEAVE right after it has been rendered, and that roundtrip
     " closes the popup and leaves.
+    DATA lt_arg TYPE string_table.
+    APPEND `CONFIG_LEAVE` TO lt_arg.
+    APPEND `0` TO lt_arg.
     client->follow_up_action( val   = client->cs_event-start_timer
-                              t_arg = VALUE #( ( `CONFIG_LEAVE` ) ( `0` ) ) ).
+                              t_arg = lt_arg ).
 
   ENDMETHOD.
 
@@ -464,11 +469,7 @@ CLASS z2ui5_cl_app_icf_config IMPLEMENTATION.
     ms_config-theme = z2ui5_cl_config_service=>get_current_theme( ).
     DATA lv_debug_value TYPE string.
     lv_debug_value = z2ui5_cl_config_service=>get_config( 'DEBUG_MODE' ).
-    IF lv_debug_value = 'X' OR lv_debug_value = 'true' OR lv_debug_value = '1'.
-      ms_config-debug_mode = abap_true.
-    ELSE.
-      ms_config-debug_mode = abap_false.
-    ENDIF.
+    ms_config-debug_mode = xsdbool( lv_debug_value = 'X' OR lv_debug_value = 'true' OR lv_debug_value = '1' ).
 
     " Load other configuration values
     ms_config-ui5_src    = z2ui5_cl_config_service=>get_config( 'UI5_SRC' ).
