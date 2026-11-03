@@ -27,7 +27,7 @@ CREATE PUBLIC.
       RETURNING VALUE(rt_config) TYPE ty_t_config.
 
     CLASS-METHODS get_theme_list
-      IMPORTING iv_ui5_version   TYPE clike " DEFAULT z2ui5_cl_app_startup=>mv_ui5_version
+      IMPORTING iv_ui5_version   TYPE clike
       RETURNING VALUE(rt_themes) TYPE ty_t_themes.
 
     CLASS-METHODS get_current_theme
