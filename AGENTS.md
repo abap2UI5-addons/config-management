@@ -117,8 +117,8 @@ the result to the `702` branch; `abap-702` lints that branch. Never commit to
 ## Conventions
 
 - All text files are LF-only, enforced by `.gitattributes`.
-- Dependabot (`.github/dependabot.yml`) groups npm and GitHub Actions
-  updates into one pull request each. Third-party actions are pinned to a
+- `bump-deps.yaml` moves every dependency once a month, on the last Sunday,
+  in one pull request (`.github/scripts/update-deps.mjs`). Third-party actions are pinned to a
   commit SHA, with the version in a trailing comment.
 - The ecosystem-wide rules (workflow and npm-script naming, toolchain
   versions, which documentation files exist, commit style) live in
