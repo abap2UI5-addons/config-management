@@ -13,7 +13,7 @@ are kept in tables and edited in a popup app; a user exit of your own applies
 them to every page abap2UI5 serves. For abap2UI5 administrators who want to
 change those settings at runtime without touching the HTTP handler.
 
-> Part of [abap2UI5-addons](https://github.com/abap2UI5-addons) - addons and apps for [abap2UI5](https://github.com/abap2UI5/abap2UI5), installed with [abapGit](https://abapgit.org).
+> Part of [abap2UI5-addons](https://github.com/abap2UI5-addons) - addons and apps for [abap2UI5](https://github.com/abap2UI5/abap2UI5), installed with [abapGit](https://abapgit.org). Documentation: [abap2ui5-addons.github.io/config-management](https://abap2ui5-addons.github.io/config-management/).
 
 ![466231499-ebaa079d-8f53-483f-be75-e40e9a4dc7c9](https://github.com/user-attachments/assets/d2b1d0ba-4343-47b1-96f4-ff53c3a5e4d7)
 
