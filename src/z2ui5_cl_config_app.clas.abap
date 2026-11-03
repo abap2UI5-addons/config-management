@@ -129,8 +129,8 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
     " Initialize default configs if needed
     z2ui5_cl_config_service=>initialize_default_configs( ).
 
-    " Only refresh configurations if they haven't been loaded yet or if explicitly requested
-    " This keeps unsaved input - a theme picked for the preview - when the popup is displayed again
+    " Only load the values that are still empty - this keeps unsaved input,
+    " a theme picked for the preview, when the popup is displayed again
     IF ms_config-theme IS INITIAL.
       ms_config-theme = z2ui5_cl_config_service=>get_current_theme( ).
     ENDIF.
@@ -327,7 +327,7 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
 
     dialog->ele( `endButton`
         )->tag( `Button`
-            )->a( n = `text`   v = `close`
+            )->a( n = `text`   v = `Close`
             )->a( n = `press`  v = client->_event( `CLOSE` )
             )->a( n = `type`   v = `Emphasized` ).
 

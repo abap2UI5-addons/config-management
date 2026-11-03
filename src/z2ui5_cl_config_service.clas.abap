@@ -103,15 +103,11 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    " Fallback to ABAP2UI5 defaults
-    CASE iv_key.
-      WHEN 'THEME'.
-        rv_value = 'sap_horizon'.
-      WHEN 'DEBUG_MODE'.
-        rv_value = ''.
-      WHEN OTHERS.
-        rv_value = ''.
-    ENDCASE.
+    " Fallback to the abap2UI5 defaults - only THEME has one, every other
+    " key stays empty so that the user exit keeps abap2UI5's own value
+    IF iv_key = 'THEME'.
+      rv_value = 'sap_horizon'.
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_config.
@@ -200,7 +196,6 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
       lv_ui5_version = condense( val  = lv_ui5_version
                                  from = ` `
                                  to   = `` ). " Remove spaces
-*          REPLACE ALL OCCURRENCES OF REGEX '\.\d+\b' IN lv_ui5_version WITH ''. " Remove patch version
 
       " Split the version string by dots
       SPLIT lv_ui5_version AT '.' INTO TABLE lt_parts.
@@ -285,9 +280,8 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     AUTHORITY-CHECK OBJECT 'Z2UI5_CONF'
                     ID 'ACTVT' FIELD '02'  " Change authorization
                     ID 'Z2UI5_CTYP' FIELD '*'.
-    " sy-subrc = 0. " Set to 0 to Simulate authority check for master user
     IF sy-subrc = 0.
-      rv_is_master = COND #( WHEN sy-subrc = 0 THEN 'X' ELSE '' ).
+      rv_is_master = abap_true.
     ENDIF.
   ENDMETHOD.
 
@@ -295,7 +289,6 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     AUTHORITY-CHECK OBJECT 'Z2UI5_CONF'
                     ID 'ACTVT' FIELD iv_activity
                     ID 'Z2UI5_CTYP' FIELD iv_config_key.
-    " sy-subrc = 0. " Set to 0 to Simulate authority check
     rv_authorized = xsdbool( sy-subrc = 0 ).
   ENDMETHOD.
 
@@ -537,9 +530,6 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     ls_theme_entry-created_at  = lv_timestamp.
     ls_theme_entry-changed_at  = lv_timestamp.
     MODIFY z2ui5_t_30 FROM @ls_theme_entry.
-
-    " Continue with other themes following the same pattern...
-    " (Expand this for all themes and versions as required)
 
     COMMIT WORK AND WAIT.
   ENDMETHOD.

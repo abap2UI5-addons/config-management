@@ -23,7 +23,7 @@ features:
   - title: "Configuration popup app z2ui5_cl_config_app with real-time theme preview"
   - title: "User-specific and global configuration with in-memory caching"
   - title: "Admin-only fields and a master user concept for UI5_SRC and CSP_POLICY"
-  - title: "Authorization object Z2UI5_CONF with fields ACTVT and CONFIG_TYP"
+  - title: "Authorization object Z2UI5_CONF with fields ACTVT and Z2UI5_CTYP"
   - title: "Theme compatibility matrix by UI5 version (table Z2UI5_T_30)"
 ---
 
@@ -33,7 +33,7 @@ Theme, UI5 bootstrap source, custom CSS and Content-Security-Policy are kept in 
 
 ## Requirements
 
-- Standard ABAP 7.50 or higher (no 7.02 downport)
+- Standard ABAP 7.50 or higher; NetWeaver 7.02 - 7.40 through the downported branch 702
 - abap2UI5 1.145.0 or later
 - ABAP Cloud: no (Standard ABAP only)
 - UI5 1.118 or later for the theme preview; on older releases the saved theme applies with the next page load

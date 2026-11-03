@@ -23,7 +23,7 @@ The settings of the abap2UI5 page usually live in code. Changing the theme or
 the UI5 source then means changing the HTTP handler or the user exit.
 config-management moves them to the database:
 
-- Eliminates need to modify HTTP handler code for configuration changes
+- Eliminates the need to modify HTTP handler code for configuration changes
 - Enables per-user customization (themes, custom CSS, etc.)
 - Provides secure admin-only controls for system-level settings
 - Maintains framework performance through intelligent caching
@@ -40,7 +40,7 @@ while maintaining full backward compatibility.
 - Standard ABAP 7.50 or higher - the code is written for ABAP 7.50 and is
   syntax-checked at that release on every pull request.
 - NetWeaver 7.02 - 7.40: the branch `702`, downported automatically from
-  `main` on every push - pull abap2UI5 from their `702` branches as well
+  `main` on every push - pull abap2UI5 from its `702` branch as well
 - [abap2UI5](https://github.com/abap2UI5/abap2UI5) 1.145.0 or later
 
 **Renamed (2026-11).** The second field of the authorization object `Z2UI5_CONF` is `Z2UI5_CTYP` now; it was `CONFIG_TYP`, outside the customer namespace. On a system that has the addon already, the pull changes the object: open the roles that contain `Z2UI5_CONF` in `PFCG`, maintain the values for `Z2UI5_CTYP` (the same values `CONFIG_TYP` had - the configuration keys, or `*` for master users) and generate the profiles. Until then every check of the addon is denied. Then delete the field `CONFIG_TYP` in `SU20`.

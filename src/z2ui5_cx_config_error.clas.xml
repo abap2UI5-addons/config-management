@@ -5,7 +5,7 @@
    <VSEOCLASS>
     <CLSNAME>Z2UI5_CX_CONFIG_ERROR</CLSNAME>
     <LANGU>E</LANGU>
-    <DESCRIPT>Exception class for Configuration save</DESCRIPT>
+    <DESCRIPT>abap2UI5 - configuration error</DESCRIPT>
     <CATEGORY>40</CATEGORY>
     <STATE>1</STATE>
     <CLSCCINCL>X</CLSCCINCL>

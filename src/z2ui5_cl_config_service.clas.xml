@@ -5,7 +5,7 @@
    <VSEOCLASS>
     <CLSNAME>Z2UI5_CL_CONFIG_SERVICE</CLSNAME>
     <LANGU>E</LANGU>
-    <DESCRIPT>ABAP2UI5 Service class to manage configuration settings</DESCRIPT>
+    <DESCRIPT>abap2UI5 - configuration service</DESCRIPT>
     <STATE>1</STATE>
     <CLSCCINCL>X</CLSCCINCL>
     <FIXPT>X</FIXPT>
