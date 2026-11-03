@@ -153,11 +153,7 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
 
     " Debug mode handling
     lv_debug_value = z2ui5_cl_config_service=>get_config( 'DEBUG_MODE' ).
-    IF lv_debug_value = 'X' OR lv_debug_value = 'true' OR lv_debug_value = '1'.
-      ms_config-debug_mode = abap_true.
-    ELSE.
-      ms_config-debug_mode = abap_false.
-    ENDIF.
+    ms_config-debug_mode = xsdbool( lv_debug_value = 'X' OR lv_debug_value = 'true' OR lv_debug_value = '1' ).
 
     " the items of the theme Select
     themes_read( ).
@@ -473,11 +469,7 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
     ms_config-theme = z2ui5_cl_config_service=>get_current_theme( ).
     DATA lv_debug_value TYPE string.
     lv_debug_value = z2ui5_cl_config_service=>get_config( 'DEBUG_MODE' ).
-    IF lv_debug_value = 'X' OR lv_debug_value = 'true' OR lv_debug_value = '1'.
-      ms_config-debug_mode = abap_true.
-    ELSE.
-      ms_config-debug_mode = abap_false.
-    ENDIF.
+    ms_config-debug_mode = xsdbool( lv_debug_value = 'X' OR lv_debug_value = 'true' OR lv_debug_value = '1' ).
 
     " Load other configuration values
     ms_config-ui5_src    = z2ui5_cl_config_service=>get_config( 'UI5_SRC' ).

@@ -385,6 +385,16 @@
     "range_row_values": true,
     "redundant_cast": true,
     "smim_consistency": true,
-    "sort_empty_key": true
+    "sort_empty_key": true,
+    // The rest of abap2UI5's rule set, added 2026-11 with their findings
+    // fixed, no exceptions. The messages of Z2UI5_CONF are raised through the
+    // T100 key constants of z2ui5_cx_config_error; its raise_* methods carry
+    // a MESSAGE ... INTO for the where-used list (easy_to_find_messages).
+    "begin_single_include": true,
+    "clear_after_declaration": true,
+    "easy_to_find_messages": true,
+    "subrc_after_assign": true,
+    "unnecessary_chaining": true,
+    "use_bool_expression": true
   }
 }

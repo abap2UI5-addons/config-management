@@ -3,9 +3,7 @@ PUBLIC FINAL
 CREATE PUBLIC.
 
   PUBLIC SECTION.
-    TYPES: BEGIN OF ty_config.
-             INCLUDE TYPE z2ui5_t_29.
-    TYPES: END OF ty_config.
+    TYPES ty_config TYPE z2ui5_t_29.
     TYPES ty_t_config TYPE STANDARD TABLE OF ty_config WITH DEFAULT KEY.
     TYPES ty_t_themes TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
 
@@ -153,7 +151,7 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
 
     ASSIGN gt_config_cache[ config_key = iv_key
                             user_id    = lv_user_id ] TO FIELD-SYMBOL(<ls_config>).
-    IF sy-subrc = 0.
+    IF <ls_config> IS ASSIGNED.
       " MODIFY writes the whole row - keep who created it and when
       ls_config-created_by = <ls_config>-created_by.
       ls_config-created_at = <ls_config>-created_at.
@@ -306,9 +304,7 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
                     ID 'ACTVT' FIELD iv_activity
                     ID 'Z2UI5_CTYP' FIELD iv_config_key.
     " sy-subrc = 0. " Set to 0 to Simulate authority check
-    IF sy-subrc = 0.
-      rv_authorized = COND #( WHEN sy-subrc = 0 THEN abap_true ELSE abap_false ).
-    ENDIF.
+    rv_authorized = xsdbool( sy-subrc = 0 ).
   ENDMETHOD.
 
   METHOD initialize_default_configs.
@@ -328,10 +324,8 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     GET TIME STAMP FIELD lv_timestamp.
 
     " Initialize default configurations based on abap2UI5 documentation
-    CLEAR lt_default_configs.
 
     " Core theme configuration - unlocked for user customization
-    CLEAR ls_config.
     ls_config-config_key   = 'THEME'.
     ls_config-config_value = 'sap_horizon'.
     ls_config-config_type  = 'STRING'.
@@ -398,7 +392,6 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     DATA ls_theme_entry TYPE z2ui5_t_30.
 
     " sap_horizon themes (UI5 1.96+)
-    CLEAR ls_theme_entry.
     ls_theme_entry-ui5_version = '1.96'.
     ls_theme_entry-theme       = 'sap_horizon'.
     ls_theme_entry-is_active   = abap_true.
