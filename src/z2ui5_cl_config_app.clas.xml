@@ -5,7 +5,7 @@
    <VSEOCLASS>
     <CLSNAME>Z2UI5_CL_CONFIG_APP</CLSNAME>
     <LANGU>E</LANGU>
-    <DESCRIPT>abap2UI5 - icf config popup</DESCRIPT>
+    <DESCRIPT>abap2UI5 - configuration app</DESCRIPT>
     <STATE>1</STATE>
     <CLSCCINCL>X</CLSCCINCL>
     <FIXPT>X</FIXPT>

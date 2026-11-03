@@ -13,7 +13,7 @@ are kept in tables and edited in a popup app; a user exit of your own applies
 them to every page abap2UI5 serves. For abap2UI5 administrators who want to
 change those settings at runtime without touching the HTTP handler.
 
-> Part of [abap2UI5-addons](https://github.com/abap2UI5-addons) - addons and apps for [abap2UI5](https://github.com/abap2UI5/abap2UI5), installed with [abapGit](https://abapgit.org).
+> Part of [abap2UI5-addons](https://github.com/abap2UI5-addons) - addons and apps for [abap2UI5](https://github.com/abap2UI5/abap2UI5), installed with [abapGit](https://abapgit.org). Documentation: [abap2ui5-addons.github.io/config-management](https://abap2ui5-addons.github.io/config-management/).
 
 ![466231499-ebaa079d-8f53-483f-be75-e40e9a4dc7c9](https://github.com/user-attachments/assets/d2b1d0ba-4343-47b1-96f4-ff53c3a5e4d7)
 
@@ -23,7 +23,7 @@ The settings of the abap2UI5 page usually live in code. Changing the theme or
 the UI5 source then means changing the HTTP handler or the user exit.
 config-management moves them to the database:
 
-- Eliminates need to modify HTTP handler code for configuration changes
+- Eliminates the need to modify HTTP handler code for configuration changes
 - Enables per-user customization (themes, custom CSS, etc.)
 - Provides secure admin-only controls for system-level settings
 - Maintains framework performance through intelligent caching
@@ -40,7 +40,7 @@ while maintaining full backward compatibility.
 - Standard ABAP 7.50 or higher - the code is written for ABAP 7.50 and is
   syntax-checked at that release on every pull request.
 - NetWeaver 7.02 - 7.40: the branch `702`, downported automatically from
-  `main` on every push - pull abap2UI5 from their `702` branches as well
+  `main` on every push - pull abap2UI5 from its `702` branch as well
 - [abap2UI5](https://github.com/abap2UI5/abap2UI5) 1.145.0 or later
 
 **Renamed (2026-11).** The second field of the authorization object `Z2UI5_CONF` is `Z2UI5_CTYP` now; it was `CONFIG_TYP`, outside the customer namespace. On a system that has the addon already, the pull changes the object: open the roles that contain `Z2UI5_CONF` in `PFCG`, maintain the values for `Z2UI5_CTYP` (the same values `CONFIG_TYP` had - the configuration keys, or `*` for master users) and generate the profiles. Until then every check of the addon is denied. Then delete the field `CONFIG_TYP` in `SU20`.

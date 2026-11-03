@@ -1,0 +1,5 @@
+{
+  "repo": "config-management",
+  "title": "Config Management",
+  "description": "Keep the settings of the abap2UI5 page in tables, not in code."
+}

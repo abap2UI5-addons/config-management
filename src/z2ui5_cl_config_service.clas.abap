@@ -27,7 +27,7 @@ CREATE PUBLIC.
       RETURNING VALUE(rt_config) TYPE ty_t_config.
 
     CLASS-METHODS get_theme_list
-      IMPORTING iv_ui5_version   TYPE clike " DEFAULT z2ui5_cl_app_startup=>mv_ui5_version
+      IMPORTING iv_ui5_version   TYPE clike
       RETURNING VALUE(rt_themes) TYPE ty_t_themes.
 
     CLASS-METHODS get_current_theme
@@ -103,15 +103,11 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    " Fallback to ABAP2UI5 defaults
-    CASE iv_key.
-      WHEN 'THEME'.
-        rv_value = 'sap_horizon'.
-      WHEN 'DEBUG_MODE'.
-        rv_value = ''.
-      WHEN OTHERS.
-        rv_value = ''.
-    ENDCASE.
+    " Fallback to the abap2UI5 defaults - only THEME has one, every other
+    " key stays empty so that the user exit keeps abap2UI5's own value
+    IF iv_key = 'THEME'.
+      rv_value = 'sap_horizon'.
+    ENDIF.
   ENDMETHOD.
 
   METHOD set_config.
@@ -200,7 +196,6 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
       lv_ui5_version = condense( val  = lv_ui5_version
                                  from = ` `
                                  to   = `` ). " Remove spaces
-*          REPLACE ALL OCCURRENCES OF REGEX '\.\d+\b' IN lv_ui5_version WITH ''. " Remove patch version
 
       " Split the version string by dots
       SPLIT lv_ui5_version AT '.' INTO TABLE lt_parts.
@@ -218,28 +213,20 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
       " Input: '1.120.32' Result: lv_ui5_version = '1.120'
     ENDIF.
 
-    " Try exact version match
-    SELECT theme FROM z2ui5_t_30
-      WHERE ui5_version = @lv_ui5_version
-        AND is_active   = 'X'
-        INTO TABLE @rt_themes.
-
-    " Fallback: a row names the release a theme is available from, so the
-    " themes of every row up to the running release apply - 1.71 gets what
-    " 1.65 and 1.69 list, a release newer than the last row gets them all.
-    " (A LIKE without a wildcard never matched more than the exact version.)
-    IF rt_themes IS INITIAL.
-      SELECT ui5_version, theme FROM z2ui5_t_30
-        WHERE is_active = 'X'
-        INTO TABLE @DATA(lt_rows).
-      LOOP AT lt_rows INTO DATA(ls_row).
-        IF check_release_up_to( release = ls_row-ui5_version
-                                max     = lv_ui5_version ) = abap_true
-           AND NOT line_exists( rt_themes[ table_line = ls_row-theme ] ).
-          APPEND CONV string( ls_row-theme ) TO rt_themes.
-        ENDIF.
-      ENDLOOP.
-    ENDIF.
+    " A row names the release a theme is available from, so the themes of
+    " every row up to the running release apply - 1.71 gets what 1.65 and
+    " 1.69 list, a release newer than the last row gets them all. (An exact
+    " match alone would leave out every theme of an older row.)
+    SELECT ui5_version, theme FROM z2ui5_t_30
+      WHERE is_active = 'X'
+      INTO TABLE @DATA(lt_rows).
+    LOOP AT lt_rows INTO DATA(ls_row).
+      IF check_release_up_to( release = ls_row-ui5_version
+                              max     = lv_ui5_version ) = abap_true
+         AND NOT line_exists( rt_themes[ table_line = ls_row-theme ] ).
+        APPEND CONV string( ls_row-theme ) TO rt_themes.
+      ENDIF.
+    ENDLOOP.
 
     " Fallback to default themes if none found
     IF rt_themes IS INITIAL.
@@ -293,9 +280,8 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     AUTHORITY-CHECK OBJECT 'Z2UI5_CONF'
                     ID 'ACTVT' FIELD '02'  " Change authorization
                     ID 'Z2UI5_CTYP' FIELD '*'.
-    " sy-subrc = 0. " Set to 0 to Simulate authority check for master user
     IF sy-subrc = 0.
-      rv_is_master = COND #( WHEN sy-subrc = 0 THEN 'X' ELSE '' ).
+      rv_is_master = abap_true.
     ENDIF.
   ENDMETHOD.
 
@@ -303,7 +289,6 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     AUTHORITY-CHECK OBJECT 'Z2UI5_CONF'
                     ID 'ACTVT' FIELD iv_activity
                     ID 'Z2UI5_CTYP' FIELD iv_config_key.
-    " sy-subrc = 0. " Set to 0 to Simulate authority check
     rv_authorized = xsdbool( sy-subrc = 0 ).
   ENDMETHOD.
 
@@ -545,9 +530,6 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     ls_theme_entry-created_at  = lv_timestamp.
     ls_theme_entry-changed_at  = lv_timestamp.
     MODIFY z2ui5_t_30 FROM @ls_theme_entry.
-
-    " Continue with other themes following the same pattern...
-    " (Expand this for all themes and versions as required)
 
     COMMIT WORK AND WAIT.
   ENDMETHOD.

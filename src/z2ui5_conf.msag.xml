@@ -5,20 +5,20 @@
    <T100A>
     <ARBGB>Z2UI5_CONF</ARBGB>
     <MASTERLANG>E</MASTERLANG>
-    <STEXT>Custom Exception messages for abap2ui5 configuration</STEXT>
+    <STEXT>abap2UI5 - configuration messages</STEXT>
    </T100A>
    <T100>
     <T100>
      <SPRSL>E</SPRSL>
      <ARBGB>Z2UI5_CONF</ARBGB>
      <MSGNR>001</MSGNR>
-     <TEXT>Configuration is locked by master-user</TEXT>
+     <TEXT>Configuration is locked by a master user</TEXT>
     </T100>
     <T100>
      <SPRSL>E</SPRSL>
      <ARBGB>Z2UI5_CONF</ARBGB>
      <MSGNR>002</MSGNR>
-     <TEXT>Failed to save configuration to database</TEXT>
+     <TEXT>Failed to save the configuration to the database</TEXT>
     </T100>
    </T100>
   </asx:values>
