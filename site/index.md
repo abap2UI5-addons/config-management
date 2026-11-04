@@ -5,8 +5,8 @@ hero:
   name: "Config Management"
   text: "Keep the settings of the abap2UI5 page in tables, not in code."
   image:
-    src: /favicon.png
-    alt: abap2UI5
+    src: /logo.svg
+    alt: abap2UI5 addons
   actions:
     - theme: brand
       text: Get started
