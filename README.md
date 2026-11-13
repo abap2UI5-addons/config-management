@@ -158,7 +158,7 @@ defaults on its first start.
   - Keeps the abap2UI5 default wherever nothing is stored  
   
 ### Database Objects
-- **Z2UI5_T_29**: Main configuration table with user/global scope support  
+- **Z2UI5_T_29**: Main configuration table with user/global scope support. `CONFIG_VALUE` is a STRING, so a full CSP tag or a longer stylesheet is stored whole (it was CHAR 255 before and cut such values off). On a system that already holds rows, the pull changes the column type: if activation asks for it, adjust the table in SE14 with "Activate and adjust database" and "Save data".  
 - **Z2UI5_T_30**: UI5 theme compatibility matrix by version  
 - **Z2UI5_CONF**: Message class for configuration-related messages  
 - **Z2UI5_CX_CONFIG_ERROR**: Exception class for configuration errors  
