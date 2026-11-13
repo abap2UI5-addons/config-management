@@ -9,7 +9,7 @@ CLASS z2ui5_cl_config_app DEFINITION
       BEGIN OF ty_s_theme,
         theme TYPE string,
       END OF ty_s_theme.
-    TYPES ty_t_themes TYPE STANDARD TABLE OF ty_s_theme WITH EMPTY KEY.
+    TYPES ty_t_themes TYPE STANDARD TABLE OF ty_s_theme WITH DEFAULT KEY.
 
     DATA mv_ui5_version TYPE string.
     DATA client         TYPE REF TO z2ui5_if_client.
@@ -52,10 +52,13 @@ ENDCLASS.
 
 CLASS z2ui5_cl_config_app IMPLEMENTATION.
   METHOD factory.
-    result = NEW #( ).
+    CREATE OBJECT result.
   ENDMETHOD.
 
   METHOD save_all_configs.
+        DATA lv_debug_string TYPE string.
+        DATA lv_is_master TYPE boolean.
+        DATA lx_error TYPE REF TO cx_root.
     TRY.
         " Save theme from bound form field
         IF ms_config-theme IS NOT INITIAL.
@@ -65,7 +68,7 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
         ENDIF.
 
         " Save debug mode from bound form field
-        DATA lv_debug_string TYPE string.
+
         IF ms_config-debug_mode = abap_true.
           lv_debug_string = 'X'.
         ELSE.
@@ -85,7 +88,7 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
                                              iv_value = ms_config-styles_css ).
 
         " Save other configurations if user has authority
-        DATA lv_is_master TYPE boolean.
+
         lv_is_master = z2ui5_cl_config_service=>is_master_user( ).
 
         " Save UI5 source (admin only)
@@ -109,7 +112,8 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
         client->message_toast_display( 'Configuration saved successfully' ).
         leave_deferred( ).
 
-      CATCH cx_root INTO DATA(lx_error).
+
+      CATCH cx_root INTO lx_error.
         " the popup stays open with the input, so the user can correct it or cancel
         ROLLBACK WORK.
         client->message_box_display( text = |Error saving configuration: { lx_error->get_text( ) }|
@@ -120,6 +124,10 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
   METHOD view_display_config_popup.
     DATA lv_is_master   TYPE boolean.
     DATA lv_debug_value TYPE string.
+    DATA temp1 TYPE xsdboolean.
+    DATA popup TYPE REF TO z2ui5_cl_ui5_view_builder.
+    DATA dialog TYPE REF TO z2ui5_cl_ui5_view_builder.
+    DATA form TYPE REF TO z2ui5_cl_ui5_view_builder.
 
     mv_config_popup_active = abap_true.
 
@@ -153,14 +161,18 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
 
     " Debug mode handling
     lv_debug_value = z2ui5_cl_config_service=>get_config( 'DEBUG_MODE' ).
-    ms_config-debug_mode = xsdbool( lv_debug_value = 'X' OR lv_debug_value = 'true' OR lv_debug_value = '1' ).
+
+    temp1 = boolc( lv_debug_value = 'X' OR lv_debug_value = 'true' OR lv_debug_value = '1' ).
+    ms_config-debug_mode = temp1.
 
     " the items of the theme Select
     themes_read( ).
 
-    DATA(popup) = z2ui5_cl_ui5_view_builder=>factory( ).
 
-    DATA(dialog) = popup->ele( n = `FragmentDefinition` ns = `core`
+    popup = z2ui5_cl_ui5_view_builder=>factory( ).
+
+
+    dialog = popup->ele( n = `FragmentDefinition` ns = `core`
         )->a( n = `xmlns`       v = `sap.m`
         )->a( n = `xmlns:core`  v = `sap.ui.core`
         )->a( n = `xmlns:form`  v = `sap.ui.layout.form`
@@ -171,7 +183,8 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
             )->a( n = `contentWidth`   v = `60%`
             )->a( n = `contentHeight`  v = `70%` ).
 
-    DATA(form) = dialog->ele( `content`
+
+    form = dialog->ele( `content`
         )->ele( n = `SimpleForm` ns = `form`
             )->a( n = `editable`  v = `true`
             )->a( n = `layout`    v = `ResponsiveGridLayout`
@@ -267,13 +280,18 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD view_display_popup.
+    DATA popup TYPE REF TO z2ui5_cl_ui5_view_builder.
+    DATA dialog TYPE REF TO z2ui5_cl_ui5_view_builder.
+    DATA form TYPE REF TO z2ui5_cl_ui5_view_builder.
 
     " the frontend reports its UI5 runtime with every request
     ui5_version_read( ).
 
-    DATA(popup) = z2ui5_cl_ui5_view_builder=>factory( ).
 
-    DATA(dialog) = popup->ele( n = `FragmentDefinition` ns = `core`
+    popup = z2ui5_cl_ui5_view_builder=>factory( ).
+
+
+    dialog = popup->ele( n = `FragmentDefinition` ns = `core`
         )->a( n = `xmlns`       v = `sap.m`
         )->a( n = `xmlns:core`  v = `sap.ui.core`
         )->a( n = `xmlns:form`  v = `sap.ui.layout.form`
@@ -282,7 +300,8 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
             )->a( n = `title`       v = `abap2UI5 - System Information`
             )->a( n = `afterClose`  v = client->_event( `CLOSE` ) ).
 
-    DATA(form) = dialog->ele( `content`
+
+    form = dialog->ele( `content`
         )->ele( n = `SimpleForm` ns = `form`
             )->a( n = `editable`                 v = `true`
             )->a( n = `layout`                   v = `ResponsiveGridLayout`
@@ -337,19 +356,20 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
   METHOD z2ui5_if_app~main.
     me->client = client.
 
-    IF client->check_on_init( ).
+    IF client->check_on_init( ) IS NOT INITIAL.
       z2ui5_on_init( ).
       view_display_config_popup( ).
-    ELSEIF client->check_on_navigated( ).
+    ELSEIF client->check_on_navigated( ) IS NOT INITIAL.
       " a restored draft (bookmark, browser Back/Forward) - the popup is the
       " only view this app has, so it is displayed again
       view_display_config_popup( ).
-    ELSEIF client->check_on_event( ).
+    ELSEIF client->check_on_event( ) IS NOT INITIAL.
       z2ui5_on_event( ).
     ENDIF.
   ENDMETHOD.
 
   METHOD z2ui5_on_event.
+        DATA lv_saved_theme TYPE string.
 
     CASE client->get( )-event.
 
@@ -372,7 +392,8 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
 
       WHEN 'CLOSE_CONFIG'.
         " Reset theme to saved value if user cancels without saving
-        DATA(lv_saved_theme) = z2ui5_cl_config_service=>get_current_theme( ).
+
+        lv_saved_theme = z2ui5_cl_config_service=>get_current_theme( ).
 
         IF ms_config-theme <> lv_saved_theme.
           " Revert to saved theme
@@ -404,19 +425,40 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD themes_read.
+    DATA lt_theme_names TYPE z2ui5_cl_config_service=>ty_t_themes.
+    DATA temp1 TYPE z2ui5_cl_config_app=>ty_t_themes.
+    DATA lv_theme_name LIKE LINE OF lt_theme_names.
+      DATA temp2 LIKE LINE OF temp1.
+    DATA temp3 LIKE sy-subrc.
+      DATA temp4 TYPE z2ui5_cl_config_app=>ty_s_theme.
 
     IF mv_ui5_version IS INITIAL.
       ui5_version_read( ).
     ENDIF.
 
-    DATA(lt_theme_names) = z2ui5_cl_config_service=>get_theme_list( mv_ui5_version ).
-    mt_themes = VALUE #( FOR lv_theme_name IN lt_theme_names ( theme = lv_theme_name ) ).
+
+    lt_theme_names = z2ui5_cl_config_service=>get_theme_list( mv_ui5_version ).
+
+    CLEAR temp1.
+
+    LOOP AT lt_theme_names INTO lv_theme_name.
+
+      temp2-theme = lv_theme_name.
+      INSERT temp2 INTO TABLE temp1.
+    ENDLOOP.
+    mt_themes = temp1.
 
     " the current theme stays selectable even when the list of the running
     " release does not carry it - the Select forces a selection, and would
     " otherwise put its first entry into ms_config-theme and save that
-    IF ms_config-theme IS NOT INITIAL AND NOT line_exists( mt_themes[ theme = ms_config-theme ] ). "#EC CI_SORTSEQ
-      INSERT VALUE #( theme = ms_config-theme ) INTO mt_themes INDEX 1.
+
+    READ TABLE mt_themes WITH KEY theme = ms_config-theme TRANSPORTING NO FIELDS.
+    temp3 = sy-subrc.
+    IF ms_config-theme IS NOT INITIAL AND NOT temp3 = 0. "#EC CI_SORTSEQ
+
+      CLEAR temp4.
+      temp4-theme = ms_config-theme.
+      INSERT temp4 INTO mt_themes INDEX 1.
     ENDIF.
 
   ENDMETHOD.
@@ -458,6 +500,8 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD z2ui5_on_init.
+    DATA lv_debug_value TYPE string.
+    DATA temp2 TYPE xsdboolean.
 
     " the UI5 version the browser runs - it selects the theme list
     ui5_version_read( ).
@@ -467,9 +511,11 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
 
     " Load current configurations into ms_config structure
     ms_config-theme = z2ui5_cl_config_service=>get_current_theme( ).
-    DATA lv_debug_value TYPE string.
+
     lv_debug_value = z2ui5_cl_config_service=>get_config( 'DEBUG_MODE' ).
-    ms_config-debug_mode = xsdbool( lv_debug_value = 'X' OR lv_debug_value = 'true' OR lv_debug_value = '1' ).
+
+    temp2 = boolc( lv_debug_value = 'X' OR lv_debug_value = 'true' OR lv_debug_value = '1' ).
+    ms_config-debug_mode = temp2.
 
     " Load other configuration values
     ms_config-ui5_src    = z2ui5_cl_config_service=>get_config( 'UI5_SRC' ).
