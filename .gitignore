@@ -3,3 +3,12 @@ site/node_modules/
 site/.vitepress/cache/
 site/.vitepress/dist/
 build/
+
+# the linter's README badges: every run rewrites them, CI publishes them to
+# the `badges` branch - never committed here
+.github/badges/
+
+# the shared CI template (rap-ext .github/ci/README.md): its scripts and the
+# sibling checkouts of pin-deps.mjs
+.deps/
+.ci-template/

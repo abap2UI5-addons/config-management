@@ -1,0 +1,27 @@
+{
+  // abap2UI5-linter - checks a whole app class without an SAP system: the ABAP
+  // and the view it produces, together (CI: the abap2ui5lint job of ci.yaml).
+  // https://github.com/abap2UI5/linter
+  "$schema": "./node_modules/@abap2ui5/linter/data/abap2ui5lint.schema.json",
+
+  "paths": ["src"],
+
+  // The oldest release this addon promises to run on. Raise it only when the
+  // code genuinely needs a newer member.
+  "ui5": "1.71",
+  "distribution": "openui5",
+
+  // Required, not merely left on: a default-on gate whose runtime is missing
+  // steps aside and the run stays green.
+  "render": true,
+
+  // The two README badges, rewritten on every run: what is here, and what CI
+  // made of it. CI publishes them from main to the `badges` branch, which the
+  // README reads; they are never committed here.
+  "badge": [
+    { "kind": "corpus", "file": ".github/badges/abap2ui5.json" },
+    { "kind": "checks", "file": ".github/badges/check-abap2ui5.json" }
+  ],
+
+  "failOn": "warning"
+}
