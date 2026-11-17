@@ -5,7 +5,10 @@
 [![abap2UI5](https://img.shields.io/badge/requires-abap2UI5-blue)](https://github.com/abap2UI5/abap2UI5)
 [![License](https://img.shields.io/github/license/abap2UI5-addons/config-management)](LICENSE)
 <br>
-[![ABAP Standard](https://img.shields.io/github/actions/workflow/status/abap2UI5-addons/config-management/abap-standard.yaml?branch=main&label=ABAP%20Standard)](https://github.com/abap2UI5-addons/config-management/actions/workflows/abap-standard.yaml)
+[![CI](https://img.shields.io/github/actions/workflow/status/abap2UI5-addons/config-management/ci.yaml?branch=main&label=CI)](https://github.com/abap2UI5-addons/config-management/actions/workflows/ci.yaml)
+[![ABAP 7.02](https://img.shields.io/github/actions/workflow/status/abap2UI5-addons/config-management/ci-702.yaml?branch=main&label=ABAP%207.02)](https://github.com/abap2UI5-addons/config-management/actions/workflows/ci-702.yaml)
+[![check-abap2UI5](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fabap2UI5-addons%2Fconfig-management%2Fbadges%2Fcheck-abap2ui5.json)](https://github.com/abap2UI5-addons/config-management/actions/workflows/ci.yaml)
+[![abap2UI5](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fabap2UI5-addons%2Fconfig-management%2Fbadges%2Fabap2ui5.json)](https://github.com/abap2UI5-addons/config-management/actions/workflows/ci.yaml)
 
 **Store the settings of the abap2UI5 page in database tables instead of in
 code.** Theme, UI5 bootstrap source, custom CSS and Content-Security-Policy
@@ -182,7 +185,9 @@ npm ci
 npm run check
 ```
 
-`npm run check` runs what CI runs: abaplint at `v750` (`abap-standard.yaml`).
+`npm run check` runs what the `ci` workflow runs: abaplint at `v750`
+(`abaplint.jsonc`) and for ABAP Cloud (`.github/abaplint/abap_cloud.jsonc`),
+and the abap2UI5-linter (`abap2ui5lint.jsonc`).
 
 ## Contributing
 
