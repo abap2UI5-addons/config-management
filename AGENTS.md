@@ -93,26 +93,41 @@ Everything is in `src/`, one package:
 `abaplint.jsonc` gives the abap2UI5 dependency **no version pin**, so abaplint
 clones its `main` branch. The comment in `abaplint.jsonc` says so on purpose:
 the check also notices when an upstream rename breaks this addon. That is
-why `abap-standard` also runs weekly, when no pull request is open.
+why `ci` also runs weekly, when no pull request is open.
 
 ## Build and verify
 
 ```sh
 npm ci
-npm run check   # abaplint ./abaplint.jsonc, at v750, 0 issues expected
+npm run check   # abaplint Standard (v750) and Cloud, then the abap2UI5-linter - 0 issues expected
 ```
 
-`npm run check` runs what CI runs: the `abap-standard` workflow
-(`.github/workflows/abap-standard.yaml`) runs `npm ci` and
-`npx abaplint ./abaplint.jsonc` on every push to `main`, on every pull
-request, weekly, and by hand. `npm test` is an alias of `npm run check`: the
-ABAP here is checked, not executed.
+`npm test` is an alias of `npm run check`: the ABAP here is checked, not
+executed.
 
-This repository has no abap2UI5-linter gate and no ABAP Cloud lint. The code
-is written for ABAP 7.50. `publish-702` downports it on every push to `main`
-(`npm run auto_downport` against `.github/abaplint/abap_702.jsonc`) and writes
-the result to the `702` branch; `abap-702` lints that branch. Never commit to
-`702` by hand.
+## CI
+
+CI comes from the shared CI template of abap2UI5-addons (reusable workflows in
+[rap-ext](https://github.com/abap2UI5-addons/rap-ext/blob/main/.github/ci/README.md),
+pinned by commit in the `uses:` lines and moved by `bump-deps`):
+
+* `ci` - on every push to `main`, every pull request, weekly and by hand,
+  one job per check: abaplint against Standard ABAP (`abaplint.jsonc`, v750)
+  and ABAP Cloud (`.github/abaplint/abap_cloud.jsonc`, released APIs only),
+  and `abap2ui5lint` - the app class and its views (`abap2ui5lint.jsonc`,
+  UI5 1.71 floor, render gate on). On `main` the linter's two README badges
+  are published to the branch `badges`. There are no ABAP Unit tests and no
+  rename script here, so no `unit` and no `rename` job.
+* `ci-702` - on every push to `main` `npm run auto_downport` (against
+  `.github/abaplint/abap_702.jsonc`), a force-push of the result to the
+  branch `702`, then abaplint on that branch. Never commit to `702` by hand.
+* `deploy-pages` (the site), `bump-deps` (monthly; the template pin moves only
+  with the `DEPS_TOKEN` secret).
+
+The addon builds on no sibling addon, so there is no `.github/deps.json`.
+The required status checks of the branch protection are `check / abaplint
+(./abaplint.jsonc)`, `check / abaplint (.github/abaplint/abap_cloud.jsonc)`
+and `check / abap2ui5lint`.
 
 ## Conventions
 
