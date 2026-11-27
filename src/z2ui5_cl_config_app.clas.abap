@@ -154,40 +154,14 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD view_display_config_popup.
-    DATA lv_is_master   TYPE boolean.
-    DATA lv_debug_value TYPE string.
+    DATA lv_is_master TYPE boolean.
 
     " Check if user is master user
     lv_is_master = z2ui5_cl_config_service=>is_master_user( ).
 
-    " Initialize default configs if needed
-    z2ui5_cl_config_service=>initialize_default_configs( ).
-
-    " Only load the values that are still empty - this keeps unsaved input,
-    " a theme picked for the preview, when the popup is displayed again
-    IF ms_config-theme IS INITIAL.
-      ms_config-theme = z2ui5_cl_config_service=>get_current_theme( ).
-    ENDIF.
-
-    IF ms_config-app_title IS INITIAL.
-      ms_config-app_title = z2ui5_cl_config_service=>get_config( 'APP_TITLE' ).
-    ENDIF.
-
-    IF ms_config-ui5_src IS INITIAL.
-      ms_config-ui5_src = z2ui5_cl_config_service=>get_config( 'UI5_SRC' ).
-    ENDIF.
-
-    IF ms_config-styles_css IS INITIAL.
-      ms_config-styles_css = z2ui5_cl_config_service=>get_config( 'STYLES_CSS' ).
-    ENDIF.
-
-    IF ms_config-csp_policy IS INITIAL.
-      ms_config-csp_policy = z2ui5_cl_config_service=>get_config( 'CSP_POLICY' ).
-    ENDIF.
-
-    " Debug mode handling
-    lv_debug_value = z2ui5_cl_config_service=>get_config( 'DEBUG_MODE' ).
-    ms_config-debug_mode = xsdbool( lv_debug_value = 'X' OR lv_debug_value = 'true' OR lv_debug_value = '1' ).
+    " ms_config holds the values to show: z2ui5_on_init( ) loaded them, a
+    " restored draft brings them back with the input that was not saved, a
+    " theme picked for the preview included
 
     " the items of the theme Select
     themes_read( ).

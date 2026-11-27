@@ -381,10 +381,10 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD initialize_default_configs.
-    DATA lv_timestamp       TYPE timestampl.
-    DATA lt_default_configs TYPE ty_t_config.
-    DATA ls_config          TYPE ty_config.
-    DATA lv_count           TYPE i.
+    DATA lv_timestamp TYPE timestampl.
+    DATA lv_count     TYPE i.
+    DATA lt_configs   TYPE ty_t_config.
+    DATA lt_themes    TYPE STANDARD TABLE OF z2ui5_t_30 WITH EMPTY KEY.
 
     " Check if already initialized (unless force refresh)
     IF iv_force_refresh = abap_false.
@@ -396,217 +396,39 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
 
     GET TIME STAMP FIELD lv_timestamp.
 
-    " Initialize default configurations based on abap2UI5 documentation
+    " global defaults, open for every user's own value. No UI5_SRC and no
+    " CSP_POLICY: an unset key keeps the abap2UI5 default, which knows what
+    " the running platform needs (a stored OpenUI5 CDN URL stops the page
+    " from booting on ABAP Cloud)
+    lt_configs = VALUE #(
+      ( config_key = 'THEME'      config_value = 'sap_horizon' config_type = 'STRING'  description = 'Default UI5 Theme' )
+      ( config_key = 'DEBUG_MODE' config_value = ''            config_type = 'BOOLEAN' description = 'Debug Mode Setting' )
+      ( config_key = 'APP_TITLE'  config_value = 'abap2UI5'    config_type = 'STRING'  description = 'Application Title' ) ).
+    LOOP AT lt_configs ASSIGNING FIELD-SYMBOL(<ls_config>).
+      <ls_config>-is_active  = abap_true.
+      <ls_config>-created_by = sy-uname.
+      <ls_config>-changed_by = sy-uname.
+      <ls_config>-created_at = lv_timestamp.
+      <ls_config>-changed_at = lv_timestamp.
+    ENDLOOP.
+    MODIFY z2ui5_t_29 FROM TABLE @lt_configs.
 
-    " Core theme configuration - unlocked for user customization
-    ls_config-config_key   = 'THEME'.
-    ls_config-config_value = 'sap_horizon'.
-    ls_config-config_type  = 'STRING'.
-    ls_config-description  = 'Default UI5 Theme'.
-    ls_config-is_active    = abap_true.
-    ls_config-user_id      = ''.
-    ls_config-is_locked    = abap_false.
-    ls_config-created_by   = sy-uname.
-    ls_config-changed_by   = sy-uname.
-    ls_config-created_at   = lv_timestamp.
-    ls_config-changed_at   = lv_timestamp.
-    APPEND ls_config TO lt_default_configs.
-
-    " Debug mode - unlocked for user customization
-    CLEAR ls_config.
-    ls_config-config_key   = 'DEBUG_MODE'.
-    ls_config-config_value = ''.
-    ls_config-config_type  = 'BOOLEAN'.
-    ls_config-description  = 'Debug Mode Setting'.
-    ls_config-is_active    = abap_true.
-    ls_config-user_id      = ''.
-    ls_config-is_locked    = abap_false.
-    ls_config-created_by   = sy-uname.
-    ls_config-changed_by   = sy-uname.
-    ls_config-created_at   = lv_timestamp.
-    ls_config-changed_at   = lv_timestamp.
-    APPEND ls_config TO lt_default_configs.
-
-    " No UI5_SRC and no CSP_POLICY: an unset key keeps the abap2UI5 default,
-    " which knows what the running platform needs (a stored OpenUI5 CDN URL
-    " stops the page from booting on ABAP Cloud)
-
-    " Application title - unlocked for customization
-    CLEAR ls_config.
-    ls_config-config_key   = 'APP_TITLE'.
-    ls_config-config_value = 'abap2UI5'.
-    ls_config-config_type  = 'STRING'.
-    ls_config-description  = 'Application Title'.
-    ls_config-is_active    = abap_true.
-    ls_config-user_id      = ''.
-    ls_config-is_locked    = abap_false.
-    ls_config-created_by   = sy-uname.
-    ls_config-changed_by   = sy-uname.
-    ls_config-created_at   = lv_timestamp.
-    ls_config-changed_at   = lv_timestamp.
-    APPEND ls_config TO lt_default_configs.
-
-    " Insert configurations
-    MODIFY z2ui5_t_29 FROM TABLE @lt_default_configs.
-
-    " Initialize themes based on UI5 compatibility matrix
-    " For themes, create a structure and populate it
-    DATA ls_theme_entry TYPE z2ui5_t_30.
-
-    " sap_horizon themes (UI5 1.96+)
-    ls_theme_entry-ui5_version = '1.96'.
-    ls_theme_entry-theme       = 'sap_horizon'.
-    ls_theme_entry-is_active   = abap_true.
-    ls_theme_entry-created_by  = sy-uname.
-    ls_theme_entry-changed_by  = sy-uname.
-    ls_theme_entry-created_at  = lv_timestamp.
-    ls_theme_entry-changed_at  = lv_timestamp.
-    MODIFY z2ui5_t_30 FROM @ls_theme_entry.
-
-    CLEAR ls_theme_entry.
-    ls_theme_entry-ui5_version = '1.101'.
-    ls_theme_entry-theme       = 'sap_horizon'.
-    ls_theme_entry-is_active   = abap_true.
-    ls_theme_entry-created_by  = sy-uname.
-    ls_theme_entry-changed_by  = sy-uname.
-    ls_theme_entry-created_at  = lv_timestamp.
-    ls_theme_entry-changed_at  = lv_timestamp.
-    MODIFY z2ui5_t_30 FROM @ls_theme_entry.
-
-    CLEAR ls_theme_entry.
-    ls_theme_entry-ui5_version = '1.120'.
-    ls_theme_entry-theme       = 'sap_horizon'.
-    ls_theme_entry-is_active   = abap_true.
-    ls_theme_entry-created_by  = sy-uname.
-    ls_theme_entry-changed_by  = sy-uname.
-    ls_theme_entry-created_at  = lv_timestamp.
-    ls_theme_entry-changed_at  = lv_timestamp.
-    MODIFY z2ui5_t_30 FROM @ls_theme_entry.
-
-    CLEAR ls_theme_entry.
-    ls_theme_entry-ui5_version = '1.136'.
-    ls_theme_entry-theme       = 'sap_horizon'.
-    ls_theme_entry-is_active   = abap_true.
-    ls_theme_entry-created_by  = sy-uname.
-    ls_theme_entry-changed_by  = sy-uname.
-    ls_theme_entry-created_at  = lv_timestamp.
-    ls_theme_entry-changed_at  = lv_timestamp.
-    MODIFY z2ui5_t_30 FROM @ls_theme_entry.
-
-    " sap_horizon_dark themes (UI5 1.101+)
-    CLEAR ls_theme_entry.
-    ls_theme_entry-ui5_version = '1.101'.
-    ls_theme_entry-theme       = 'sap_horizon_dark'.
-    ls_theme_entry-is_active   = abap_true.
-    ls_theme_entry-created_by  = sy-uname.
-    ls_theme_entry-changed_by  = sy-uname.
-    ls_theme_entry-created_at  = lv_timestamp.
-    ls_theme_entry-changed_at  = lv_timestamp.
-    MODIFY z2ui5_t_30 FROM @ls_theme_entry.
-
-    CLEAR ls_theme_entry.
-    ls_theme_entry-ui5_version = '1.120'.
-    ls_theme_entry-theme       = 'sap_horizon_dark'.
-    ls_theme_entry-is_active   = abap_true.
-    ls_theme_entry-created_by  = sy-uname.
-    ls_theme_entry-changed_by  = sy-uname.
-    ls_theme_entry-created_at  = lv_timestamp.
-    ls_theme_entry-changed_at  = lv_timestamp.
-    MODIFY z2ui5_t_30 FROM @ls_theme_entry.
-
-    CLEAR ls_theme_entry.
-    ls_theme_entry-ui5_version = '1.136'.
-    ls_theme_entry-theme       = 'sap_horizon_dark'.
-    ls_theme_entry-is_active   = abap_true.
-    ls_theme_entry-created_by  = sy-uname.
-    ls_theme_entry-changed_by  = sy-uname.
-    ls_theme_entry-created_at  = lv_timestamp.
-    ls_theme_entry-changed_at  = lv_timestamp.
-    MODIFY z2ui5_t_30 FROM @ls_theme_entry.
-
-    " sap_horizon_hcb themes (UI5 1.101+)
-    CLEAR ls_theme_entry.
-    ls_theme_entry-ui5_version = '1.101'.
-    ls_theme_entry-theme       = 'sap_horizon_hcb'.
-    ls_theme_entry-is_active   = abap_true.
-    ls_theme_entry-created_by  = sy-uname.
-    ls_theme_entry-changed_by  = sy-uname.
-    ls_theme_entry-created_at  = lv_timestamp.
-    ls_theme_entry-changed_at  = lv_timestamp.
-    MODIFY z2ui5_t_30 FROM @ls_theme_entry.
-
-    CLEAR ls_theme_entry.
-    ls_theme_entry-ui5_version = '1.120'.
-    ls_theme_entry-theme       = 'sap_horizon_hcb'.
-    ls_theme_entry-is_active   = abap_true.
-    ls_theme_entry-created_by  = sy-uname.
-    ls_theme_entry-changed_by  = sy-uname.
-    ls_theme_entry-created_at  = lv_timestamp.
-    ls_theme_entry-changed_at  = lv_timestamp.
-    MODIFY z2ui5_t_30 FROM @ls_theme_entry.
-
-    CLEAR ls_theme_entry.
-    ls_theme_entry-ui5_version = '1.136'.
-    ls_theme_entry-theme       = 'sap_horizon_hcb'.
-    ls_theme_entry-is_active   = abap_true.
-    ls_theme_entry-created_by  = sy-uname.
-    ls_theme_entry-changed_by  = sy-uname.
-    ls_theme_entry-created_at  = lv_timestamp.
-    ls_theme_entry-changed_at  = lv_timestamp.
-    MODIFY z2ui5_t_30 FROM @ls_theme_entry.
-
-    " sap_horizon_hcw themes (UI5 1.101+)
-    CLEAR ls_theme_entry.
-    ls_theme_entry-ui5_version = '1.101'.
-    ls_theme_entry-theme       = 'sap_horizon_hcw'.
-    ls_theme_entry-is_active   = abap_true.
-    ls_theme_entry-created_by  = sy-uname.
-    ls_theme_entry-changed_by  = sy-uname.
-    ls_theme_entry-created_at  = lv_timestamp.
-    ls_theme_entry-changed_at  = lv_timestamp.
-    MODIFY z2ui5_t_30 FROM @ls_theme_entry.
-
-    CLEAR ls_theme_entry.
-    ls_theme_entry-ui5_version = '1.120'.
-    ls_theme_entry-theme       = 'sap_horizon_hcw'.
-    ls_theme_entry-is_active   = abap_true.
-    ls_theme_entry-created_by  = sy-uname.
-    ls_theme_entry-changed_by  = sy-uname.
-    ls_theme_entry-created_at  = lv_timestamp.
-    ls_theme_entry-changed_at  = lv_timestamp.
-    MODIFY z2ui5_t_30 FROM @ls_theme_entry.
-
-    CLEAR ls_theme_entry.
-    ls_theme_entry-ui5_version = '1.136'.
-    ls_theme_entry-theme       = 'sap_horizon_hcw'.
-    ls_theme_entry-is_active   = abap_true.
-    ls_theme_entry-created_by  = sy-uname.
-    ls_theme_entry-changed_by  = sy-uname.
-    ls_theme_entry-created_at  = lv_timestamp.
-    ls_theme_entry-changed_at  = lv_timestamp.
-    MODIFY z2ui5_t_30 FROM @ls_theme_entry.
-
-    " sap_fiori_3 themes (UI5 1.65+)
-    CLEAR ls_theme_entry.
-    ls_theme_entry-ui5_version = '1.65'.
-    ls_theme_entry-theme       = 'sap_fiori_3'.
-    ls_theme_entry-is_active   = abap_true.
-    ls_theme_entry-created_by  = sy-uname.
-    ls_theme_entry-changed_by  = sy-uname.
-    ls_theme_entry-created_at  = lv_timestamp.
-    ls_theme_entry-changed_at  = lv_timestamp.
-    MODIFY z2ui5_t_30 FROM @ls_theme_entry.
-
-    " sap_fiori_3 themes (UI5 1.69+)
-    CLEAR ls_theme_entry.
-    ls_theme_entry-ui5_version = '1.69'.
-    ls_theme_entry-theme       = 'sap_fiori_3'.
-    ls_theme_entry-is_active   = abap_true.
-    ls_theme_entry-created_by  = sy-uname.
-    ls_theme_entry-changed_by  = sy-uname.
-    ls_theme_entry-created_at  = lv_timestamp.
-    ls_theme_entry-changed_at  = lv_timestamp.
-    MODIFY z2ui5_t_30 FROM @ls_theme_entry.
+    " the release each theme is available from - get_theme_list takes every
+    " row up to the running release, so one row per theme is enough
+    lt_themes = VALUE #(
+      ( ui5_version = '1.65'  theme = 'sap_fiori_3' )
+      ( ui5_version = '1.96'  theme = 'sap_horizon' )
+      ( ui5_version = '1.101' theme = 'sap_horizon_dark' )
+      ( ui5_version = '1.101' theme = 'sap_horizon_hcb' )
+      ( ui5_version = '1.101' theme = 'sap_horizon_hcw' ) ).
+    LOOP AT lt_themes ASSIGNING FIELD-SYMBOL(<ls_theme>).
+      <ls_theme>-is_active  = abap_true.
+      <ls_theme>-created_by = sy-uname.
+      <ls_theme>-changed_by = sy-uname.
+      <ls_theme>-created_at = lv_timestamp.
+      <ls_theme>-changed_at = lv_timestamp.
+    ENDLOOP.
+    MODIFY z2ui5_t_30 FROM TABLE @lt_themes.
 
     COMMIT WORK AND WAIT.
   ENDMETHOD.
