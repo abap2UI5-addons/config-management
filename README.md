@@ -187,7 +187,8 @@ npm run check
 
 `npm run check` runs what the `ci` workflow runs: abaplint at `v750`
 (`abaplint.jsonc`) and for ABAP Cloud (`.github/abaplint/abap_cloud.jsonc`),
-and the abap2UI5-linter (`abap2ui5lint.jsonc`).
+the 7.02 downport of a scratch copy (`npm run check:702`) and the
+abap2UI5-linter (`abap2ui5lint.jsonc`).
 
 ## Contributing
 

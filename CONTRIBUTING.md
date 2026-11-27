@@ -23,6 +23,7 @@ checked, not executed.
 | Gate | What it proves |
 | --- | --- |
 | `npm run lint` | abaplint: syntax at ABAP 7.50, checked against the abap2UI5 core's `main` branch and the SAP API stubs |
+| `npm run check:702` | the 7.02 downport: a scratch copy of `src/` in `build/702`, downported and linted with `.github/abaplint/abap_702.jsonc` (`.github/scripts/check-702.sh`) - `src/` is never rewritten |
 
 abaplint does not run the code. Changes to authorization checks, database
 access or the configuration app's behaviour still need a test on an SAP
