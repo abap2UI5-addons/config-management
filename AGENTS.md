@@ -99,7 +99,7 @@ why `ci` also runs weekly, when no pull request is open.
 
 ```sh
 npm ci
-npm run check   # abaplint Standard (v750) and Cloud, then the abap2UI5-linter - 0 issues expected
+npm run check   # abaplint Standard (v750), the 7.02 downport and Cloud, then the abap2UI5-linter - 0 issues expected
 ```
 
 `npm test` is an alias of `npm run check`: the ABAP here is checked, not
@@ -115,7 +115,10 @@ pinned by commit in the `uses:` lines and moved by `bump-deps`):
   one job per check: abaplint against Standard ABAP (`abaplint.jsonc`, v750)
   and ABAP Cloud (`.github/abaplint/abap_cloud.jsonc`, released APIs only),
   and `abap2ui5lint` - the app class and its views (`abap2ui5lint.jsonc`,
-  UI5 1.71 floor, render gate on). On `main` the linter's two README badges
+  UI5 1.71 floor, render gate on), and `npm run check:702` - the 7.02 gate
+  of a pull request (`.github/scripts/check-702.sh` downports a scratch copy
+  of `src/` in `build/702` and lints it with `.github/abaplint/abap_702.jsonc`;
+  `src/` is never rewritten). On `main` the linter's two README badges
   are published to the branch `badges`. There are no ABAP Unit tests and no
   rename script here, so no `unit` and no `rename` job.
 * `ci-702` - on every push to `main` `npm run auto_downport` (against
@@ -127,7 +130,8 @@ pinned by commit in the `uses:` lines and moved by `bump-deps`):
 The addon builds on no sibling addon, so there is no `.github/deps.json`.
 The required status checks of the branch protection are `check / abaplint
 (./abaplint.jsonc)`, `check / abaplint (.github/abaplint/abap_cloud.jsonc)`
-and `check / abap2ui5lint`.
+and `check / abap2ui5lint` (`check / npm run check:702` is new and not yet
+among them).
 
 ## Conventions
 
