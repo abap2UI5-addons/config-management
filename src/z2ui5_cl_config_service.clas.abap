@@ -7,6 +7,8 @@ CREATE PUBLIC.
     TYPES ty_t_config TYPE STANDARD TABLE OF ty_config WITH DEFAULT KEY.
     TYPES ty_t_themes TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
 
+    "! the active rows of the global configuration and of the user the
+    "! cache was loaded for (sy-uname) - not those of every user
     CLASS-DATA gt_config_cache TYPE ty_t_config.
 
     CLASS-METHODS get_config
@@ -48,6 +50,21 @@ CREATE PUBLIC.
     CLASS-METHODS load_config_cache.
 
   PRIVATE SECTION.
+    "! the user whose rows gt_config_cache holds next to the global ones
+    CLASS-DATA gv_cache_user TYPE syuname.
+
+    "! load_config_cache( ) unless the cache holds the rows of sy-uname
+    CLASS-METHODS cache_ensure.
+
+    "! The row of a key for a user (empty: the global row) - from the cache
+    "! for the global rows and those of sy-uname, from the database for
+    "! anyone else's
+    CLASS-METHODS config_row_read
+      IMPORTING iv_key     TYPE clike
+                iv_user_id TYPE clike
+      EXPORTING es_config  TYPE ty_config
+                ev_found   TYPE abap_bool.
+
     "! abap_true for the master-user settings UI5_SRC and CSP_POLICY: they
     "! are system-wide - stored once, without a user, locked - and a user
     "! value is never read for them
@@ -70,35 +87,78 @@ ENDCLASS.
 
 CLASS z2ui5_cl_config_service IMPLEMENTATION.
   METHOD load_config_cache.
+    " the exit reads the configuration for every response: only the rows it
+    " can need - the global ones and the current user's - not every user's
     CLEAR gt_config_cache.
+    gv_cache_user = sy-uname.
     SELECT * FROM z2ui5_t_29
       WHERE is_active = 'X'
+        AND ( user_id = @gv_cache_user OR user_id = @space )
        INTO CORRESPONDING FIELDS OF TABLE @gt_config_cache.
+  ENDMETHOD.
+
+  METHOD cache_ensure.
+    IF gt_config_cache IS INITIAL OR gv_cache_user <> sy-uname.
+      load_config_cache( ).
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD config_row_read.
+    CLEAR es_config.
+    ev_found = abap_false.
+
+    cache_ensure( ).
+
+    IF iv_user_id IS INITIAL OR iv_user_id = gv_cache_user.
+      READ TABLE gt_config_cache INTO es_config WITH KEY config_key = iv_key
+                                                         user_id    = iv_user_id.
+      IF sy-subrc = 0.
+        ev_found = abap_true.
+      ENDIF.
+      RETURN.
+    ENDIF.
+
+    " the full key - at most one row
+    DATA lt_config  TYPE ty_t_config.
+    DATA lv_key     TYPE z2ui5_t_29-config_key.
+    DATA lv_user_id TYPE z2ui5_t_29-user_id.
+    lv_key     = iv_key.
+    lv_user_id = iv_user_id.
+    SELECT * FROM z2ui5_t_29
+      WHERE config_key = @lv_key
+        AND user_id    = @lv_user_id
+        AND is_active  = 'X'
+      INTO CORRESPONDING FIELDS OF TABLE @lt_config.
+    READ TABLE lt_config INTO es_config INDEX 1.
+    IF sy-subrc = 0.
+      ev_found = abap_true.
+    ENDIF.
   ENDMETHOD.
 
   METHOD get_config.
     DATA ls_config TYPE ty_config.
-
-    IF gt_config_cache IS INITIAL.
-      load_config_cache( ).
-    ENDIF.
+    DATA lv_found  TYPE abap_bool.
 
     " Try user-specific configuration first - not for a system-wide setting,
     " where a user row (e.g. one saved before these were stored globally)
     " must not override what the master user set for everybody
-    IF is_system_wide( iv_key ) = abap_false.
-      READ TABLE gt_config_cache INTO ls_config WITH KEY config_key = iv_key
-                                                         user_id    = iv_user_id.
-      IF sy-subrc = 0.
+    IF is_system_wide( iv_key ) = abap_false AND iv_user_id IS NOT INITIAL.
+      config_row_read( EXPORTING iv_key     = iv_key
+                                 iv_user_id = iv_user_id
+                       IMPORTING es_config  = ls_config
+                                 ev_found   = lv_found ).
+      IF lv_found = abap_true.
         rv_value = ls_config-config_value.
         RETURN.
       ENDIF.
     ENDIF.
 
     " Fallback to global configuration
-    READ TABLE gt_config_cache INTO ls_config WITH KEY config_key = iv_key
-                                                       user_id    = ''.
-    IF sy-subrc = 0.
+    config_row_read( EXPORTING iv_key     = iv_key
+                               iv_user_id = ''
+                     IMPORTING es_config  = ls_config
+                               ev_found   = lv_found ).
+    IF lv_found = abap_true.
       rv_value = ls_config-config_value.
       RETURN.
     ENDIF.
@@ -113,9 +173,7 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
   METHOD set_config.
     DATA ls_config TYPE ty_config.
 
-    IF gt_config_cache IS INITIAL.
-      load_config_cache( ).
-    ENDIF.
+    cache_ensure( ).
 
     " A system-wide setting is the master user's alone, locked or not, and it
     " is stored once for everybody (no user) and stays locked
@@ -145,21 +203,24 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     ls_config-changed_by   = sy-uname.
     GET TIME STAMP FIELD ls_config-changed_at.
 
-    ASSIGN gt_config_cache[ config_key = iv_key
-                            user_id    = lv_user_id ] TO FIELD-SYMBOL(<ls_config>).
-    IF <ls_config> IS ASSIGNED.
-      " MODIFY writes the whole row - keep who created it and when
-      ls_config-created_by = <ls_config>-created_by.
-      ls_config-created_at = <ls_config>-created_at.
-      <ls_config>-config_value = iv_value.
-      <ls_config>-description  = iv_description.
-      <ls_config>-config_type  = iv_type.
-      <ls_config>-is_locked    = ls_config-is_locked.
-      <ls_config>-changed_by   = sy-uname.
-      GET TIME STAMP FIELD <ls_config>-changed_at.
+    " MODIFY writes the whole row - keep who created it and when
+    DATA ls_saved TYPE ty_config.
+    DATA lv_found TYPE abap_bool.
+    config_row_read( EXPORTING iv_key     = iv_key
+                               iv_user_id = lv_user_id
+                     IMPORTING es_config  = ls_saved
+                               ev_found   = lv_found ).
+    IF lv_found = abap_true.
+      ls_config-created_by = ls_saved-created_by.
+      ls_config-created_at = ls_saved-created_at.
     ELSE.
       ls_config-created_by = sy-uname.
       GET TIME STAMP FIELD ls_config-created_at.
+    ENDIF.
+
+    " the cache holds the global rows and those of sy-uname only
+    IF lv_user_id IS INITIAL OR lv_user_id = gv_cache_user.
+      DELETE gt_config_cache WHERE config_key = iv_key AND user_id = lv_user_id.
       INSERT ls_config INTO TABLE gt_config_cache.
     ENDIF.
 
@@ -174,11 +235,17 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_all_configs.
-    IF gt_config_cache IS INITIAL.
-      load_config_cache( ).
-    ENDIF.
+    cache_ensure( ).
     rt_config = gt_config_cache.
     DELETE rt_config WHERE user_id <> iv_user_id AND user_id <> ''.
+
+    " the cache holds the rows of sy-uname only - another user's are read
+    IF iv_user_id IS NOT INITIAL AND iv_user_id <> gv_cache_user.
+      SELECT * FROM z2ui5_t_29
+        WHERE is_active = 'X'
+          AND user_id   = @iv_user_id
+        APPENDING CORRESPONDING FIELDS OF TABLE @rt_config.
+    ENDIF.
   ENDMETHOD.
 
   METHOD get_theme_list.
