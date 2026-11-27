@@ -27,8 +27,8 @@
   },
   "homepage": "https://github.com/abap2UI5-addons/config-management#readme",
   "devDependencies": {
-    "@abap2ui5/linter": "^0.11.0",
-    "@abap2ui5/linter-render": "^0.11.0",
+    "@abap2ui5/linter": "^0.13.0",
+    "@abap2ui5/linter-render": "^0.13.0",
     "@abaplint/cli": "^2.120.92"
   },
   "engines": {
