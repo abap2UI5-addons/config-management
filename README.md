@@ -138,7 +138,7 @@ defaults on its first start.
 - **STYLES_CSS**: Custom CSS injection  
 - **CSP_POLICY**: Content Security Policy (admin-only, one value for all users) - the complete `<meta http-equiv="Content-Security-Policy" ...>` tag  
 
-## Components
+## Features
 
 ### Core Configuration Service
 - **z2ui5_cl_config_service**: Central service for managing application configurations  
@@ -166,7 +166,7 @@ defaults on its first start.
 - **Z2UI5_CONF**: Message class for configuration-related messages  
 - **Z2UI5_CX_CONFIG_ERROR**: Exception class for configuration errors  
   
-## Security & Authorization
+## Security
 - **Z2UI5_CONF**: Authorization object with the fields ACTVT and Z2UI5_CTYP (the configuration key; named CONFIG_TYP up to 2026-11 - see Installation)  
 - Master user concept for sensitive configurations (UI5_SRC, CSP_POLICY)  
 - Configuration locking mechanism for system-critical settings  
