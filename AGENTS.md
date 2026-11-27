@@ -30,7 +30,7 @@ Everything is in `src/`, one package:
 
 | Object | |
 |---|---|
-| `z2ui5_cl_config_service` | The service: `get_config` (user value, then global value, then default; global only for `UI5_SRC` and `CSP_POLICY`), `set_config`, `get_current_theme`, `get_theme_list`, `initialize_default_configs`, `is_master_user`, `check_config_authority`. Values are cached in `gt_config_cache` |
+| `z2ui5_cl_config_service` | The service: `get_config` (user value, then global value, then default; global only for `UI5_SRC` and `CSP_POLICY`), `set_config`, `get_current_theme`, `get_theme_list`, `initialize_default_configs`, `is_master_user`, `check_config_authority` (deprecated, no caller). Values are cached in `gt_config_cache` |
 | `z2ui5_cl_config_app` | The configuration app (`z2ui5_if_app`), shown as a popup |
 | `z2ui5_cx_config_error` | Exception class of the service |
 | `Z2UI5_T_29` | Configuration table, keyed by client, `CONFIG_KEY` and `USER_ID` (empty = global) |
@@ -61,7 +61,11 @@ Everything is in `src/`, one package:
 - **An unset value keeps abap2UI5's default.** The exit in the README
   replaces a field of `cs_config` only when a value is stored. Keep
   `get_config` returning an empty string for a key nobody set (apart from
-  the built-in `THEME` default `sap_horizon`).
+  the built-in `THEME` default `sap_horizon`). So `initialize_default_configs`
+  seeds neither `UI5_SRC` nor `CSP_POLICY` - the app names abap2UI5's
+  default as a placeholder instead. Up to 2026-11 it seeded `UI5_SRC` with
+  the OpenUI5 CDN, which the ABAP Cloud CSP refuses; `get_config` ignores
+  that row while it is untouched (`is_legacy_seed`) rather than deleting it.
 - **`UI5_SRC` and `CSP_POLICY` are master-user settings.** The app lets a
   user edit and save them only when `is_master_user( )` passes
   (authorization object `Z2UI5_CONF` with `ACTVT` `02`). Everyone else sees
@@ -73,6 +77,13 @@ Everything is in `src/`, one package:
   them from master users only, and `get_config` reads only the global
   value for them. Earlier versions saved a master user's change for that
   master user alone; such a user row is ignored now.
+- **A user's own settings need no authorization.** `THEME`, `APP_TITLE`,
+  `STYLES_CSS` and `DEBUG_MODE` change the page of the user who saves them
+  and nothing else, so every user may set them. The service checks
+  `Z2UI5_CTYP` for `*` only (`is_master_user`); a per-key check in
+  `set_config` would lock every user without a `Z2UI5_CONF` role out of
+  their own theme. `check_config_authority` has no caller and is deprecated
+  - the README says the field marks master users, not single keys.
 - **Name the authorization field as the object defines it.**
   `Z2UI5_CONF`'s second field is `Z2UI5_CTYP` (10 characters, the maximum
   for an authorization field), and both `AUTHORITY-CHECK` statements in

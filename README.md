@@ -51,9 +51,11 @@ while maintaining full backward compatibility.
   from its `702` branch as well
 - [abap2UI5](https://github.com/abap2UI5/abap2UI5) 1.145.0 or later
 
-**Renamed (2026-11).** The second field of the authorization object `Z2UI5_CONF` is `Z2UI5_CTYP` now; it was `CONFIG_TYP`, outside the customer namespace. On a system that has the addon already, the pull changes the object: open the roles that contain `Z2UI5_CONF` in `PFCG`, maintain the values for `Z2UI5_CTYP` (the same values `CONFIG_TYP` had - the configuration keys, or `*` for master users) and generate the profiles. Until then every check of the addon is denied. Then delete the field `CONFIG_TYP` in `SU20`.
+**Renamed (2026-11).** The second field of the authorization object `Z2UI5_CONF` is `Z2UI5_CTYP` now; it was `CONFIG_TYP`, outside the customer namespace. On a system that has the addon already, the pull changes the object: open the roles that contain `Z2UI5_CONF` in `PFCG`, maintain `Z2UI5_CTYP` = `*` for the master users (the value `CONFIG_TYP` had - the only one the addon checks) and generate the profiles. Until then nobody is a master user. Then delete the field `CONFIG_TYP` in `SU20`.
 
 **Renamed (2026-11).** The configuration app `z2ui5_cl_app_icf_config` is `z2ui5_cl_config_app` now, in the addon's own `config` segment. abap2UI5's start page opens the new name and falls back to the old one from its next release on; an abap2UI5 from before knows the old name only. After the pull abapGit lists the old class as deleted in the repository: delete it once abap2UI5 is updated, and update `?app_start=` links.
+
+**No seeded UI5 source (2026-11).** Up to 2026-11 the configuration app stored the OpenUI5 CDN as a global `UI5_SRC` on its first start. With the exit below that pinned every page to the CDN, and on ABAP Cloud, whose Content-Security-Policy refuses that host, the page no longer booted. The app seeds no `UI5_SRC` (and no `CSP_POLICY`) now, and `get_config` ignores the row an earlier version seeded as long as nobody has saved the field since: the abap2UI5 default applies again. The row itself stays in `Z2UI5_T_29`; a master user who wants a source of their own saves it in the app as before.
 
 **Renumbered tables (2026-11).** The tables follow the numbering all addons share now: `Z2UI5_CONFIG` is `Z2UI5_T_29`, `Z2UI5_THEMES` is `Z2UI5_T_30`. The pull creates the new tables empty, and the data stays in the old ones. Copy it once per client before you delete an old table - for each pair, in a scratch report:
 
@@ -111,6 +113,12 @@ CLASS zcl_my_abap2ui5_exit IMPLEMENTATION.
       cs_config-content_security_policy = lv_csp.
     ENDIF.
 
+    " the user's Debug Mode: UI5 loads its debug sources
+    IF z2ui5_cl_config_service=>get_config( `DEBUG_MODE` ) = `X`.
+      INSERT VALUE #( n = `data-sap-ui-debug`
+                      v = `true` ) INTO TABLE cs_config-t_add_config.
+    ENDIF.
+
   ENDMETHOD.
 
   METHOD z2ui5_if_ui5_exit~set_config_http_post.
@@ -130,7 +138,9 @@ client->follow_up_action( val   = client->cs_event-set_title
 **Start** - open the configuration app like any abap2UI5 app -
 `?app_start=z2ui5_cl_config_app` on your abap2UI5 ICF path, or its class
 name on the abap2UI5 start page. It fills the configuration tables with their
-defaults on its first start. Started directly, it has no app to return to:
+defaults on its first start - not `UI5_SRC` or `CSP_POLICY`: left empty, they
+keep the abap2UI5 default, which the app names as a placeholder. Emptying
+either field and saving goes back to that default. Started directly, it has no app to return to:
 after Save or Cancel it shows a page with an **Open Settings** button.
 
 ## Usage
@@ -139,10 +149,10 @@ after Save or Cancel it shows a page with an **Open Settings** button.
 
 - **THEME**: UI5 theme with version-specific compatibility  
 - **APP_TITLE**: Application title - stored for apps to set as tab title, the exit has no title field (see [Installation](#installation))  
-- **UI5_SRC**: UI5 bootstrap source URL (admin-only, one value for all users)  
-- **DEBUG_MODE**: Debug mode toggle  
+- **UI5_SRC**: UI5 bootstrap source URL (admin-only, one value for all users; empty: the abap2UI5 default - the OpenUI5 CDN, `ui5.sap.com` on ABAP Cloud)  
+- **DEBUG_MODE**: Debug mode toggle, per user - `X` when on. abap2UI5 has no debug setting of its own: the exit above turns it into the bootstrap attribute `data-sap-ui-debug="true"`, so UI5 loads its debug sources, module by module and unminified - slower, meant for analysis. Without those lines in the exit the toggle has no effect  
 - **STYLES_CSS**: Custom CSS injection  
-- **CSP_POLICY**: Content Security Policy (admin-only, one value for all users) - the complete `<meta http-equiv="Content-Security-Policy" ...>` tag  
+- **CSP_POLICY**: Content Security Policy (admin-only, one value for all users) - the complete `<meta http-equiv="Content-Security-Policy" ...>` tag; empty: the abap2UI5 default policy  
 
 ## Features
 
@@ -173,8 +183,9 @@ after Save or Cancel it shows a page with an **Open Settings** button.
 - **Z2UI5_CX_CONFIG_ERROR**: Exception class for configuration errors  
   
 ## Security
-- **Z2UI5_CONF**: Authorization object with the fields ACTVT and Z2UI5_CTYP (the configuration key; named CONFIG_TYP up to 2026-11 - see Installation)  
+- **Z2UI5_CONF**: Authorization object with the fields ACTVT and Z2UI5_CTYP (named CONFIG_TYP up to 2026-11 - see Installation). The addon checks one combination: `ACTVT` `02` with `Z2UI5_CTYP` `*` makes a master user. Values for single configuration keys are not checked  
 - Master user concept for sensitive configurations (UI5_SRC, CSP_POLICY)  
+- A user's own settings (THEME, APP_TITLE, STYLES_CSS, DEBUG_MODE) need no authorization: every user may set them, and they change that user's page only. A global value that is locked takes changes from master users only  
 - Configuration locking mechanism for system-critical settings  
   
 ## Technical Implementation

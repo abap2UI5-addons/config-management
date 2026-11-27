@@ -41,6 +41,11 @@ CLASS z2ui5_cl_config_app DEFINITION
     METHODS save_all_configs.
 
   PROTECTED SECTION.
+    "! what an empty UI5_SRC means - abap2UI5's own bootstrap source
+    CONSTANTS cv_default_ui5_src TYPE string VALUE `Empty: the abap2UI5 default - the OpenUI5 CDN, ui5.sap.com on ABAP Cloud`.
+    "! what an empty CSP_POLICY means - abap2UI5's own policy
+    CONSTANTS cv_default_csp TYPE string VALUE `Empty: the abap2UI5 default policy`.
+
     METHODS ui5_version_read.
     METHODS themes_read.
 
@@ -108,12 +113,11 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
         DATA lv_is_master TYPE boolean.
         lv_is_master = z2ui5_cl_config_service=>is_master_user( ).
 
-        " Save UI5 source (admin only)
+        " Save UI5 source (admin only) - an emptied field is saved too: an
+        " empty value lets the exit keep the abap2UI5 default
         IF lv_is_master = abap_true.
-          IF ms_config-ui5_src IS NOT INITIAL.
-            config_save_if_changed( iv_key   = 'UI5_SRC'
-                                    iv_value = ms_config-ui5_src ).
-          ENDIF.
+          config_save_if_changed( iv_key   = 'UI5_SRC'
+                                  iv_value = ms_config-ui5_src ).
 
           " Save CSP policy (admin only)
           config_save_if_changed( iv_key   = 'CSP_POLICY'
@@ -150,40 +154,14 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD view_display_config_popup.
-    DATA lv_is_master   TYPE boolean.
-    DATA lv_debug_value TYPE string.
+    DATA lv_is_master TYPE boolean.
 
     " Check if user is master user
     lv_is_master = z2ui5_cl_config_service=>is_master_user( ).
 
-    " Initialize default configs if needed
-    z2ui5_cl_config_service=>initialize_default_configs( ).
-
-    " Only load the values that are still empty - this keeps unsaved input,
-    " a theme picked for the preview, when the popup is displayed again
-    IF ms_config-theme IS INITIAL.
-      ms_config-theme = z2ui5_cl_config_service=>get_current_theme( ).
-    ENDIF.
-
-    IF ms_config-app_title IS INITIAL.
-      ms_config-app_title = z2ui5_cl_config_service=>get_config( 'APP_TITLE' ).
-    ENDIF.
-
-    IF ms_config-ui5_src IS INITIAL.
-      ms_config-ui5_src = z2ui5_cl_config_service=>get_config( 'UI5_SRC' ).
-    ENDIF.
-
-    IF ms_config-styles_css IS INITIAL.
-      ms_config-styles_css = z2ui5_cl_config_service=>get_config( 'STYLES_CSS' ).
-    ENDIF.
-
-    IF ms_config-csp_policy IS INITIAL.
-      ms_config-csp_policy = z2ui5_cl_config_service=>get_config( 'CSP_POLICY' ).
-    ENDIF.
-
-    " Debug mode handling
-    lv_debug_value = z2ui5_cl_config_service=>get_config( 'DEBUG_MODE' ).
-    ms_config-debug_mode = xsdbool( lv_debug_value = 'X' OR lv_debug_value = 'true' OR lv_debug_value = '1' ).
+    " ms_config holds the values to show: z2ui5_on_init( ) loaded them, a
+    " restored draft brings them back with the input that was not saved, a
+    " theme picked for the preview included
 
     " the items of the theme Select
     themes_read( ).
@@ -237,12 +215,19 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
             )->a( n = `text`  v = `UI5 Bootstrap Settings` ).
     form->tag( `Label`
         )->a( n = `text`  v = `UI5 Source URL` ).
+    " nothing stored - the abap2UI5 default applies, named as a placeholder
+    " rather than stored, so that it follows abap2UI5 and the platform
     IF lv_is_master = abap_true.
       form->tag( `Input`
-          )->a( n = `value`  v = client->_bind( ms_config-ui5_src ) ).
+          )->a( n = `value`        v = client->_bind( ms_config-ui5_src )
+          )->a( n = `placeholder`  t = cv_default_ui5_src ).
     ELSE.
+      DATA(lv_ui5_src) = ms_config-ui5_src.
+      IF lv_ui5_src IS INITIAL.
+        lv_ui5_src = cv_default_ui5_src.
+      ENDIF.
       form->tag( `Text`
-          )->a( n = `text`  t = ms_config-ui5_src ).
+          )->a( n = `text`  t = lv_ui5_src ).
       form->tag( `Text`
           )->a( n = `text`  v = `(Admin only)` ).
     ENDIF.
@@ -274,11 +259,16 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
         )->a( n = `text`  v = `Content Security Policy` ).
     IF lv_is_master = abap_true.
       form->tag( `TextArea`
-          )->a( n = `value`  v = client->_bind( ms_config-csp_policy )
-          )->a( n = `rows`   v = `3` ).
+          )->a( n = `value`        v = client->_bind( ms_config-csp_policy )
+          )->a( n = `rows`         v = `3`
+          )->a( n = `placeholder`  t = cv_default_csp ).
     ELSE.
+      DATA(lv_csp_policy) = ms_config-csp_policy.
+      IF lv_csp_policy IS INITIAL.
+        lv_csp_policy = cv_default_csp.
+      ENDIF.
       form->tag( `Text`
-          )->a( n = `text`  t = ms_config-csp_policy ).
+          )->a( n = `text`  t = lv_csp_policy ).
       form->tag( `Text`
           )->a( n = `text`  v = `(Admin only)` ).
     ENDIF.
