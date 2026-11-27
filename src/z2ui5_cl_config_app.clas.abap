@@ -41,8 +41,6 @@ CLASS z2ui5_cl_config_app DEFINITION
     METHODS save_all_configs.
 
   PROTECTED SECTION.
-    DATA mv_config_popup_active TYPE abap_bool.
-
     METHODS ui5_version_read.
     METHODS themes_read.
 
@@ -50,6 +48,14 @@ CLASS z2ui5_cl_config_app DEFINITION
       IMPORTING iv_theme TYPE string.
 
     METHODS leave_deferred.
+
+    "! nav_app_leave( ) back to the caller - or, started directly with
+    "! nothing to return to, view_display_start( )
+    METHODS leave.
+
+    "! The page shown under the popup once it is closed in an app that was
+    "! started directly: a button to open the settings again
+    METHODS view_display_start.
 
     "! set_config( ) for a value that differs from the one in effect (the
     "! user's, else the global one) - an unchanged value is not written
@@ -146,8 +152,6 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
   METHOD view_display_config_popup.
     DATA lv_is_master   TYPE boolean.
     DATA lv_debug_value TYPE string.
-
-    mv_config_popup_active = abap_true.
 
     " Check if user is master user
     lv_is_master = z2ui5_cl_config_service=>is_master_user( ).
@@ -382,7 +386,7 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
       WHEN `CLOSE`.
         " the Close of view_display_popup( )
         client->popup_destroy( ).
-        client->nav_app_leave( ).
+        leave( ).
 
       WHEN `THEME_CHANGE`.
         " preview - the Select has written the picked theme into ms_config-theme
@@ -400,13 +404,18 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
           theme_apply( lv_saved_theme ).
           ms_config-theme = lv_saved_theme.
         ENDIF.
-        mv_config_popup_active = abap_false.
         leave_deferred( ).
 
       WHEN `CONFIG_LEAVE`.
         " fired by the timer leave_deferred( ) started
         client->popup_destroy( ).
-        client->nav_app_leave( ).
+        leave( ).
+
+      WHEN `CONFIG_OPEN`.
+        " the button of view_display_start( ) - the saved values, not the
+        " input a Cancel discarded
+        z2ui5_on_init( ).
+        view_display_config_popup( ).
 
     ENDCASE.
   ENDMETHOD.
@@ -471,6 +480,44 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
     APPEND `0` TO lt_arg.
     client->follow_up_action( val   = client->cs_event-start_timer
                               t_arg = lt_arg ).
+
+  ENDMETHOD.
+
+  METHOD leave.
+
+    " Started directly (?app_start=z2ui5_cl_config_app) the app is the root
+    " of the stack: nav_app_leave( ) has nowhere to go and is dropped, and
+    " with its popup destroyed the app would leave an empty page behind -
+    " the only view it had was the popup.
+    IF client->check_app_prev_stack( ) = abap_false.
+      view_display_start( ).
+      RETURN.
+    ENDIF.
+
+    client->nav_app_leave( ).
+
+  ENDMETHOD.
+
+  METHOD view_display_start.
+
+    DATA(view) = z2ui5_cl_ui5_view_builder=>factory(
+        )->ele( n = `View` ns = `mvc`
+            )->a( n = `xmlns`         v = `sap.m`
+            )->a( n = `xmlns:mvc`     v = `sap.ui.core.mvc`
+            )->a( n = `displayBlock`  v = `true`
+            )->a( n = `height`        v = `100%`
+
+            )->ele( `Page`
+                )->a( n = `title`  v = `Configuration Settings`
+
+                )->tag( `Button`
+                    )->a( n = `text`   v = `Open Settings`
+                    )->a( n = `icon`   v = `sap-icon://action-settings`
+                    )->a( n = `press`  v = client->_event( `CONFIG_OPEN` )
+                    )->a( n = `type`   v = `Emphasized`
+                    )->a( n = `class`  v = `sapUiSmallMargin` ).
+
+    client->view_display( view->stringify( ) ).
 
   ENDMETHOD.
 

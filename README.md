@@ -130,7 +130,8 @@ client->follow_up_action( val   = client->cs_event-set_title
 **Start** - open the configuration app like any abap2UI5 app -
 `?app_start=z2ui5_cl_config_app` on your abap2UI5 ICF path, or its class
 name on the abap2UI5 start page. It fills the configuration tables with their
-defaults on its first start.
+defaults on its first start. Started directly, it has no app to return to:
+after Save or Cancel it shows a page with an **Open Settings** button.
 
 ## Usage
 
