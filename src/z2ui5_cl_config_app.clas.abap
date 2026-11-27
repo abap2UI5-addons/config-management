@@ -41,8 +41,6 @@ CLASS z2ui5_cl_config_app DEFINITION
     METHODS save_all_configs.
 
   PROTECTED SECTION.
-    DATA mv_config_popup_active TYPE abap_bool.
-
     METHODS ui5_version_read.
     METHODS themes_read.
 
@@ -146,8 +144,6 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
   METHOD view_display_config_popup.
     DATA lv_is_master   TYPE boolean.
     DATA lv_debug_value TYPE string.
-
-    mv_config_popup_active = abap_true.
 
     " Check if user is master user
     lv_is_master = z2ui5_cl_config_service=>is_master_user( ).
@@ -400,7 +396,6 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
           theme_apply( lv_saved_theme ).
           ms_config-theme = lv_saved_theme.
         ENDIF.
-        mv_config_popup_active = abap_false.
         leave_deferred( ).
 
       WHEN `CONFIG_LEAVE`.
