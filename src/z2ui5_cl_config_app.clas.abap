@@ -23,6 +23,7 @@ CLASS z2ui5_cl_config_app DEFINITION
         csp_policy TYPE string,
       END OF ms_config.
 
+    " deprecated: never filled or shown - kept for compatibility, to be removed
     DATA mt_all_configs TYPE z2ui5_cl_config_service=>ty_t_config ##NEEDED.
     " the items of the theme Select - the themes of the running UI5 release
     DATA mt_themes      TYPE ty_t_themes.
@@ -32,6 +33,9 @@ CLASS z2ui5_cl_config_app DEFINITION
 
     METHODS z2ui5_on_init.
     METHODS z2ui5_on_event.
+    " deprecated: the System Information popup - no view of this app opens
+    " it any more (the abap2UI5 start page has its own). Kept for
+    " compatibility, to be removed.
     METHODS view_display_popup.
     METHODS view_display_config_popup.
     METHODS save_all_configs.
@@ -47,6 +51,13 @@ CLASS z2ui5_cl_config_app DEFINITION
 
     METHODS leave_deferred.
 
+    "! set_config( ) for a value that differs from the one in effect (the
+    "! user's, else the global one) - an unchanged value is not written
+    METHODS config_save_if_changed
+      IMPORTING iv_key   TYPE clike
+                iv_value TYPE string
+      RAISING   z2ui5_cx_config_error.
+
 ENDCLASS.
 
 
@@ -57,32 +68,35 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
 
   METHOD save_all_configs.
     TRY.
+        " only what was changed is written: set_config refuses every write
+        " to a locked key from a user who is no master user - an unchanged
+        " locked value must not stop the save of the others
+
         " Save theme from bound form field
         IF ms_config-theme IS NOT INITIAL.
           theme_apply( ms_config-theme ).
-          z2ui5_cl_config_service=>set_config( iv_key   = 'THEME'
-                                               iv_value = ms_config-theme ).
+          config_save_if_changed( iv_key   = 'THEME'
+                                  iv_value = ms_config-theme ).
         ENDIF.
 
-        " Save debug mode from bound form field
-        DATA lv_debug_string TYPE string.
-        IF ms_config-debug_mode = abap_true.
-          lv_debug_string = 'X'.
-        ELSE.
-          lv_debug_string = ''.
+        " Save debug mode from bound form field - compared as a flag, the
+        " stored value may also be 'true' or '1'
+        DATA(lv_debug_saved) = z2ui5_cl_config_service=>get_config( 'DEBUG_MODE' ).
+        DATA(lv_debug_was_on) = xsdbool( lv_debug_saved = 'X' OR lv_debug_saved = 'true' OR lv_debug_saved = '1' ).
+        IF lv_debug_was_on <> ms_config-debug_mode.
+          z2ui5_cl_config_service=>set_config( iv_key   = 'DEBUG_MODE'
+                                               iv_value = COND string( WHEN ms_config-debug_mode = abap_true THEN `X` ) ).
         ENDIF.
-        z2ui5_cl_config_service=>set_config( iv_key   = 'DEBUG_MODE'
-                                             iv_value = lv_debug_string ).
 
         " Save application title from bound form field
         IF ms_config-app_title IS NOT INITIAL.
-          z2ui5_cl_config_service=>set_config( iv_key   = 'APP_TITLE'
-                                               iv_value = ms_config-app_title ).
+          config_save_if_changed( iv_key   = 'APP_TITLE'
+                                  iv_value = ms_config-app_title ).
         ENDIF.
 
         " Save custom CSS from bound form field
-        z2ui5_cl_config_service=>set_config( iv_key   = 'STYLES_CSS'
-                                             iv_value = ms_config-styles_css ).
+        config_save_if_changed( iv_key   = 'STYLES_CSS'
+                                iv_value = ms_config-styles_css ).
 
         " Save other configurations if user has authority
         DATA lv_is_master TYPE boolean.
@@ -91,13 +105,13 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
         " Save UI5 source (admin only)
         IF lv_is_master = abap_true.
           IF ms_config-ui5_src IS NOT INITIAL.
-            z2ui5_cl_config_service=>set_config( iv_key   = 'UI5_SRC'
-                                                 iv_value = ms_config-ui5_src ).
+            config_save_if_changed( iv_key   = 'UI5_SRC'
+                                    iv_value = ms_config-ui5_src ).
           ENDIF.
 
           " Save CSP policy (admin only)
-          z2ui5_cl_config_service=>set_config( iv_key   = 'CSP_POLICY'
-                                               iv_value = ms_config-csp_policy ).
+          config_save_if_changed( iv_key   = 'CSP_POLICY'
+                                  iv_value = ms_config-csp_policy ).
         ENDIF.
 
         " Commit all changes to database
@@ -115,6 +129,18 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
         client->message_box_display( text = |Error saving configuration: { lx_error->get_text( ) }|
                                      type = 'error' ).
     ENDTRY.
+  ENDMETHOD.
+
+  METHOD config_save_if_changed.
+
+    DATA(lv_saved) = z2ui5_cl_config_service=>get_config( iv_key ).
+    IF lv_saved = iv_value.
+      RETURN.
+    ENDIF.
+
+    z2ui5_cl_config_service=>set_config( iv_key   = iv_key
+                                         iv_value = iv_value ).
+
   ENDMETHOD.
 
   METHOD view_display_config_popup.
@@ -354,14 +380,9 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
     CASE client->get( )-event.
 
       WHEN `CLOSE`.
+        " the Close of view_display_popup( )
         client->popup_destroy( ).
         client->nav_app_leave( ).
-
-      WHEN `OPEN_DEBUG`.
-        client->message_box_display( `Press CTRL+F12 to open the debugging tools` ).
-
-      WHEN 'SET_CONFIG'.
-        view_display_config_popup( ).
 
       WHEN `THEME_CHANGE`.
         " preview - the Select has written the picked theme into ms_config-theme
@@ -386,10 +407,6 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
         " fired by the timer leave_deferred( ) started
         client->popup_destroy( ).
         client->nav_app_leave( ).
-
-      WHEN `OPEN_INFO`.
-        view_display_popup( ).
-        RETURN.
 
     ENDCASE.
   ENDMETHOD.
