@@ -113,6 +113,12 @@ CLASS zcl_my_abap2ui5_exit IMPLEMENTATION.
       cs_config-content_security_policy = lv_csp.
     ENDIF.
 
+    " the user's Debug Mode: UI5 loads its debug sources
+    IF z2ui5_cl_config_service=>get_config( `DEBUG_MODE` ) = `X`.
+      INSERT VALUE #( n = `data-sap-ui-debug`
+                      v = `true` ) INTO TABLE cs_config-t_add_config.
+    ENDIF.
+
   ENDMETHOD.
 
   METHOD z2ui5_if_ui5_exit~set_config_http_post.
@@ -144,7 +150,7 @@ after Save or Cancel it shows a page with an **Open Settings** button.
 - **THEME**: UI5 theme with version-specific compatibility  
 - **APP_TITLE**: Application title - stored for apps to set as tab title, the exit has no title field (see [Installation](#installation))  
 - **UI5_SRC**: UI5 bootstrap source URL (admin-only, one value for all users; empty: the abap2UI5 default - the OpenUI5 CDN, `ui5.sap.com` on ABAP Cloud)  
-- **DEBUG_MODE**: Debug mode toggle  
+- **DEBUG_MODE**: Debug mode toggle, per user - `X` when on. abap2UI5 has no debug setting of its own: the exit above turns it into the bootstrap attribute `data-sap-ui-debug="true"`, so UI5 loads its debug sources, module by module and unminified - slower, meant for analysis. Without those lines in the exit the toggle has no effect  
 - **STYLES_CSS**: Custom CSS injection  
 - **CSP_POLICY**: Content Security Policy (admin-only, one value for all users) - the complete `<meta http-equiv="Content-Security-Policy" ...>` tag; empty: the abap2UI5 default policy  
 
