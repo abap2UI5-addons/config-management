@@ -55,6 +55,8 @@ while maintaining full backward compatibility.
 
 **Renamed (2026-11).** The configuration app `z2ui5_cl_app_icf_config` is `z2ui5_cl_config_app` now, in the addon's own `config` segment. abap2UI5's start page opens the new name and falls back to the old one from its next release on; an abap2UI5 from before knows the old name only. After the pull abapGit lists the old class as deleted in the repository: delete it once abap2UI5 is updated, and update `?app_start=` links.
 
+**No seeded UI5 source (2026-11).** Up to 2026-11 the configuration app stored the OpenUI5 CDN as a global `UI5_SRC` on its first start. With the exit below that pinned every page to the CDN, and on ABAP Cloud, whose Content-Security-Policy refuses that host, the page no longer booted. The app seeds no `UI5_SRC` (and no `CSP_POLICY`) now, and `get_config` ignores the row an earlier version seeded as long as nobody has saved the field since: the abap2UI5 default applies again. The row itself stays in `Z2UI5_T_29`; a master user who wants a source of their own saves it in the app as before.
+
 **Renumbered tables (2026-11).** The tables follow the numbering all addons share now: `Z2UI5_CONFIG` is `Z2UI5_T_29`, `Z2UI5_THEMES` is `Z2UI5_T_30`. The pull creates the new tables empty, and the data stays in the old ones. Copy it once per client before you delete an old table - for each pair, in a scratch report:
 
 ```abap
@@ -130,7 +132,9 @@ client->follow_up_action( val   = client->cs_event-set_title
 **Start** - open the configuration app like any abap2UI5 app -
 `?app_start=z2ui5_cl_config_app` on your abap2UI5 ICF path, or its class
 name on the abap2UI5 start page. It fills the configuration tables with their
-defaults on its first start. Started directly, it has no app to return to:
+defaults on its first start - not `UI5_SRC` or `CSP_POLICY`: left empty, they
+keep the abap2UI5 default, which the app names as a placeholder. Emptying
+either field and saving goes back to that default. Started directly, it has no app to return to:
 after Save or Cancel it shows a page with an **Open Settings** button.
 
 ## Usage
@@ -139,10 +143,10 @@ after Save or Cancel it shows a page with an **Open Settings** button.
 
 - **THEME**: UI5 theme with version-specific compatibility  
 - **APP_TITLE**: Application title - stored for apps to set as tab title, the exit has no title field (see [Installation](#installation))  
-- **UI5_SRC**: UI5 bootstrap source URL (admin-only, one value for all users)  
+- **UI5_SRC**: UI5 bootstrap source URL (admin-only, one value for all users; empty: the abap2UI5 default - the OpenUI5 CDN, `ui5.sap.com` on ABAP Cloud)  
 - **DEBUG_MODE**: Debug mode toggle  
 - **STYLES_CSS**: Custom CSS injection  
-- **CSP_POLICY**: Content Security Policy (admin-only, one value for all users) - the complete `<meta http-equiv="Content-Security-Policy" ...>` tag  
+- **CSP_POLICY**: Content Security Policy (admin-only, one value for all users) - the complete `<meta http-equiv="Content-Security-Policy" ...>` tag; empty: the abap2UI5 default policy  
 
 ## Features
 

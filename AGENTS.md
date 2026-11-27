@@ -61,7 +61,11 @@ Everything is in `src/`, one package:
 - **An unset value keeps abap2UI5's default.** The exit in the README
   replaces a field of `cs_config` only when a value is stored. Keep
   `get_config` returning an empty string for a key nobody set (apart from
-  the built-in `THEME` default `sap_horizon`).
+  the built-in `THEME` default `sap_horizon`). So `initialize_default_configs`
+  seeds neither `UI5_SRC` nor `CSP_POLICY` - the app names abap2UI5's
+  default as a placeholder instead. Up to 2026-11 it seeded `UI5_SRC` with
+  the OpenUI5 CDN, which the ABAP Cloud CSP refuses; `get_config` ignores
+  that row while it is untouched (`is_legacy_seed`) rather than deleting it.
 - **`UI5_SRC` and `CSP_POLICY` are master-user settings.** The app lets a
   user edit and save them only when `is_master_user( )` passes
   (authorization object `Z2UI5_CONF` with `ACTVT` `02`). Everyone else sees

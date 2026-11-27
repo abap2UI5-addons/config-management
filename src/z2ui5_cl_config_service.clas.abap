@@ -72,6 +72,15 @@ CREATE PUBLIC.
       IMPORTING iv_key        TYPE clike
       RETURNING VALUE(result) TYPE abap_bool.
 
+    "! abap_true for the UI5_SRC row that versions up to 2026-11 seeded on
+    "! the first start of the app (the OpenUI5 CDN), as long as nobody has
+    "! saved it since - get_config treats it as not set, so the abap2UI5
+    "! default applies (ui5.sap.com on ABAP Cloud, whose CSP refuses the
+    "! OpenUI5 CDN). The row itself stays where it is.
+    CLASS-METHODS is_legacy_seed
+      IMPORTING is_config     TYPE ty_config
+      RETURNING VALUE(result) TYPE abap_bool.
+
     "! abap_true when release (e.g. 1.69) is not newer than max (e.g. 1.71);
     "! only the parts max names are compared, so max = 1 takes every 1.x
     CLASS-METHODS check_release_up_to
@@ -153,12 +162,13 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
       ENDIF.
     ENDIF.
 
-    " Fallback to global configuration
+    " Fallback to global configuration - not the UI5_SRC an earlier version
+    " seeded, which would pin the bootstrap to the OpenUI5 CDN
     config_row_read( EXPORTING iv_key     = iv_key
                                iv_user_id = ''
                      IMPORTING es_config  = ls_config
                                ev_found   = lv_found ).
-    IF lv_found = abap_true.
+    IF lv_found = abap_true AND is_legacy_seed( ls_config ) = abap_false.
       rv_value = ls_config-config_value.
       RETURN.
     ENDIF.
@@ -342,6 +352,17 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     result = xsdbool( iv_key = 'UI5_SRC' OR iv_key = 'CSP_POLICY' ).
   ENDMETHOD.
 
+  METHOD is_legacy_seed.
+    " what initialize_default_configs wrote: set_config( ) changes
+    " changed_at and the description, so a value a master user saved - even
+    " the same URL - is no seed
+    result = xsdbool( is_config-config_key   = 'UI5_SRC'
+                  AND is_config-user_id      IS INITIAL
+                  AND is_config-config_value = 'https://sdk.openui5.org/resources/sap-ui-cachebuster/sap-ui-core.js'
+                  AND is_config-description  = 'UI5 Bootstrap Source'
+                  AND is_config-changed_at   = is_config-created_at ).
+  ENDMETHOD.
+
   METHOD is_master_user.
     " Check for master configuration authority
     AUTHORITY-CHECK OBJECT 'Z2UI5_CONF'
@@ -406,20 +427,9 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     ls_config-changed_at   = lv_timestamp.
     APPEND ls_config TO lt_default_configs.
 
-    " UI5 Bootstrap source - locked for security (master user only)
-    CLEAR ls_config.
-    ls_config-config_key   = 'UI5_SRC'.
-    ls_config-config_value = 'https://sdk.openui5.org/resources/sap-ui-cachebuster/sap-ui-core.js'.
-    ls_config-config_type  = 'STRING'.
-    ls_config-description  = 'UI5 Bootstrap Source'.
-    ls_config-is_active    = abap_true.
-    ls_config-user_id      = ''.
-    ls_config-is_locked    = abap_true.
-    ls_config-created_by   = sy-uname.
-    ls_config-changed_by   = sy-uname.
-    ls_config-created_at   = lv_timestamp.
-    ls_config-changed_at   = lv_timestamp.
-    APPEND ls_config TO lt_default_configs.
+    " No UI5_SRC and no CSP_POLICY: an unset key keeps the abap2UI5 default,
+    " which knows what the running platform needs (a stored OpenUI5 CDN URL
+    " stops the page from booting on ABAP Cloud)
 
     " Application title - unlocked for customization
     CLEAR ls_config.
