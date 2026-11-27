@@ -1,7 +1,7 @@
 # config-management
 
 [![abap2UI5-addons](https://img.shields.io/badge/abap2UI5--addons-app-1873b4)](https://github.com/abap2UI5-addons)
-[![ABAP](https://img.shields.io/badge/ABAP-Standard%20%E2%89%A5%207.50-blue)](#installation)
+[![ABAP](https://img.shields.io/badge/ABAP-Cloud%20%7C%20Standard%20%E2%89%A5%207.50%20%7C%207.02-blue)](#installation)
 [![abap2UI5](https://img.shields.io/badge/requires-abap2UI5-blue)](https://github.com/abap2UI5/abap2UI5)
 [![License](https://img.shields.io/github/license/abap2UI5-addons/config-management)](LICENSE)
 <br>
@@ -42,8 +42,13 @@ while maintaining full backward compatibility.
 
 - Standard ABAP 7.50 or higher - the code is written for ABAP 7.50 and is
   syntax-checked at that release on every pull request.
+- ABAP Cloud (BTP ABAP Environment, S/4HANA Cloud Public Edition) - every
+  pull request also checks the code against the ABAP Cloud language version
+  and the released APIs (`.github/abaplint/abap_cloud.jsonc`); it has not
+  been tried on such a system yet.
 - NetWeaver 7.02 - 7.40: the branch `702`, downported automatically from
-  `main` on every push - pull abap2UI5 from its `702` branch as well
+  `main` on every push and checked on every pull request - pull abap2UI5
+  from its `702` branch as well
 - [abap2UI5](https://github.com/abap2UI5/abap2UI5) 1.145.0 or later
 
 **Renamed (2026-11).** The second field of the authorization object `Z2UI5_CONF` is `Z2UI5_CTYP` now; it was `CONFIG_TYP`, outside the customer namespace. On a system that has the addon already, the pull changes the object: open the roles that contain `Z2UI5_CONF` in `PFCG`, maintain the values for `Z2UI5_CTYP` (the same values `CONFIG_TYP` had - the configuration keys, or `*` for master users) and generate the profiles. Until then every check of the addon is denied. Then delete the field `CONFIG_TYP` in `SU20`.

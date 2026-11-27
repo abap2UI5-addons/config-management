@@ -35,7 +35,7 @@ Theme, UI5 bootstrap source, custom CSS and Content-Security-Policy are kept in 
 
 - Standard ABAP 7.50 or higher; NetWeaver 7.02 - 7.40 through the downported branch 702
 - abap2UI5 1.145.0 or later
-- ABAP Cloud: no (Standard ABAP only)
+- ABAP Cloud: checked against the ABAP Cloud language version and the released APIs on every pull request; not tried on such a system yet
 - UI5 1.118 or later for the theme preview; on older releases the saved theme applies with the next page load
 
 ## Installation
