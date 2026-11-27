@@ -51,7 +51,7 @@ while maintaining full backward compatibility.
   from its `702` branch as well
 - [abap2UI5](https://github.com/abap2UI5/abap2UI5) 1.145.0 or later
 
-**Renamed (2026-11).** The second field of the authorization object `Z2UI5_CONF` is `Z2UI5_CTYP` now; it was `CONFIG_TYP`, outside the customer namespace. On a system that has the addon already, the pull changes the object: open the roles that contain `Z2UI5_CONF` in `PFCG`, maintain the values for `Z2UI5_CTYP` (the same values `CONFIG_TYP` had - the configuration keys, or `*` for master users) and generate the profiles. Until then every check of the addon is denied. Then delete the field `CONFIG_TYP` in `SU20`.
+**Renamed (2026-11).** The second field of the authorization object `Z2UI5_CONF` is `Z2UI5_CTYP` now; it was `CONFIG_TYP`, outside the customer namespace. On a system that has the addon already, the pull changes the object: open the roles that contain `Z2UI5_CONF` in `PFCG`, maintain `Z2UI5_CTYP` = `*` for the master users (the value `CONFIG_TYP` had - the only one the addon checks) and generate the profiles. Until then nobody is a master user. Then delete the field `CONFIG_TYP` in `SU20`.
 
 **Renamed (2026-11).** The configuration app `z2ui5_cl_app_icf_config` is `z2ui5_cl_config_app` now, in the addon's own `config` segment. abap2UI5's start page opens the new name and falls back to the old one from its next release on; an abap2UI5 from before knows the old name only. After the pull abapGit lists the old class as deleted in the repository: delete it once abap2UI5 is updated, and update `?app_start=` links.
 
@@ -183,8 +183,9 @@ after Save or Cancel it shows a page with an **Open Settings** button.
 - **Z2UI5_CX_CONFIG_ERROR**: Exception class for configuration errors  
   
 ## Security
-- **Z2UI5_CONF**: Authorization object with the fields ACTVT and Z2UI5_CTYP (the configuration key; named CONFIG_TYP up to 2026-11 - see Installation)  
+- **Z2UI5_CONF**: Authorization object with the fields ACTVT and Z2UI5_CTYP (named CONFIG_TYP up to 2026-11 - see Installation). The addon checks one combination: `ACTVT` `02` with `Z2UI5_CTYP` `*` makes a master user. Values for single configuration keys are not checked  
 - Master user concept for sensitive configurations (UI5_SRC, CSP_POLICY)  
+- A user's own settings (THEME, APP_TITLE, STYLES_CSS, DEBUG_MODE) need no authorization: every user may set them, and they change that user's page only. A global value that is locked takes changes from master users only  
 - Configuration locking mechanism for system-critical settings  
   
 ## Technical Implementation

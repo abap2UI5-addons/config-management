@@ -39,6 +39,10 @@ CREATE PUBLIC.
     CLASS-METHODS is_master_user
       RETURNING VALUE(rv_is_master) TYPE boolean.
 
+    "! deprecated: nothing calls it. The service checks Z2UI5_CTYP = '*'
+    "! only (is_master_user): a user's own settings need no authorization,
+    "! the system-wide ones need a master user. Kept for compatibility, to
+    "! be removed.
     CLASS-METHODS check_config_authority
       IMPORTING iv_config_key        TYPE clike
                 iv_activity          TYPE clike DEFAULT '02'
