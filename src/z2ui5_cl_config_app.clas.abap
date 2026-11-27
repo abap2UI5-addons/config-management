@@ -23,6 +23,7 @@ CLASS z2ui5_cl_config_app DEFINITION
         csp_policy TYPE string,
       END OF ms_config.
 
+    " deprecated: never filled or shown - kept for compatibility, to be removed
     DATA mt_all_configs TYPE z2ui5_cl_config_service=>ty_t_config ##NEEDED.
     " the items of the theme Select - the themes of the running UI5 release
     DATA mt_themes      TYPE ty_t_themes.
@@ -32,6 +33,9 @@ CLASS z2ui5_cl_config_app DEFINITION
 
     METHODS z2ui5_on_init.
     METHODS z2ui5_on_event.
+    " deprecated: the System Information popup - no view of this app opens
+    " it any more (the abap2UI5 start page has its own). Kept for
+    " compatibility, to be removed.
     METHODS view_display_popup.
     METHODS view_display_config_popup.
     METHODS save_all_configs.
@@ -376,14 +380,9 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
     CASE client->get( )-event.
 
       WHEN `CLOSE`.
+        " the Close of view_display_popup( )
         client->popup_destroy( ).
         client->nav_app_leave( ).
-
-      WHEN `OPEN_DEBUG`.
-        client->message_box_display( `Press CTRL+F12 to open the debugging tools` ).
-
-      WHEN 'SET_CONFIG'.
-        view_display_config_popup( ).
 
       WHEN `THEME_CHANGE`.
         " preview - the Select has written the picked theme into ms_config-theme
@@ -408,10 +407,6 @@ CLASS z2ui5_cl_config_app IMPLEMENTATION.
         " fired by the timer leave_deferred( ) started
         client->popup_destroy( ).
         client->nav_app_leave( ).
-
-      WHEN `OPEN_INFO`.
-        view_display_popup( ).
-        RETURN.
 
     ENDCASE.
   ENDMETHOD.
