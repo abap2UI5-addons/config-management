@@ -104,10 +104,10 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     " can need - the global ones and the current user's - not every user's
     CLEAR gt_config_cache.
     gv_cache_user = sy-uname.
-    SELECT * FROM z2ui5_t_29
+    SELECT * FROM z2ui5_t_29 INTO CORRESPONDING FIELDS OF TABLE gt_config_cache
       WHERE is_active = 'X'
-        AND ( user_id = @gv_cache_user OR user_id = @space )
-       INTO CORRESPONDING FIELDS OF TABLE @gt_config_cache.
+        AND ( user_id = gv_cache_user OR user_id = space )
+       .
   ENDMETHOD.
 
   METHOD cache_ensure.
@@ -117,6 +117,9 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD config_row_read.
+    DATA lt_config TYPE ty_t_config.
+    DATA lv_key TYPE z2ui5_t_29-config_key.
+    DATA lv_user_id TYPE z2ui5_t_29-user_id.
     CLEAR es_config.
     ev_found = abap_false.
 
@@ -132,16 +135,16 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     ENDIF.
 
     " the full key - at most one row
-    DATA lt_config  TYPE ty_t_config.
-    DATA lv_key     TYPE z2ui5_t_29-config_key.
-    DATA lv_user_id TYPE z2ui5_t_29-user_id.
+
+
+
     lv_key     = iv_key.
     lv_user_id = iv_user_id.
-    SELECT * FROM z2ui5_t_29
-      WHERE config_key = @lv_key
-        AND user_id    = @lv_user_id
+    SELECT * FROM z2ui5_t_29 INTO CORRESPONDING FIELDS OF TABLE lt_config
+      WHERE config_key = lv_key
+        AND user_id    = lv_user_id
         AND is_active  = 'X'
-      INTO CORRESPONDING FIELDS OF TABLE @lt_config.
+      .
     READ TABLE lt_config INTO es_config INDEX 1.
     IF sy-subrc = 0.
       ev_found = abap_true.
@@ -186,22 +189,30 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
 
   METHOD set_config.
     DATA ls_config TYPE ty_config.
+    DATA lv_system_wide TYPE abap_bool.
+    DATA lv_user_id TYPE z2ui5_t_29-user_id.
+    DATA ls_existing TYPE z2ui5_t_29.
+    DATA temp1 LIKE ls_config-is_locked.
+    DATA ls_saved TYPE ty_config.
+    DATA lv_found TYPE abap_bool.
 
     cache_ensure( ).
 
     " A system-wide setting is the master user's alone, locked or not, and it
     " is stored once for everybody (no user) and stays locked
-    DATA(lv_system_wide) = is_system_wide( iv_key ).
+
+    lv_system_wide = is_system_wide( iv_key ).
     IF lv_system_wide = abap_true AND is_master_user( ) = ''.
       z2ui5_cx_config_error=>raise_config_locked( ).
     ENDIF.
-    DATA lv_user_id TYPE z2ui5_t_29-user_id.
+
     IF lv_system_wide = abap_false.
       lv_user_id = iv_user_id.
     ENDIF.
 
     " Check if configuration is locked and user is not a master-user
-    READ TABLE gt_config_cache INTO DATA(ls_existing) WITH KEY config_key = iv_key
+
+    READ TABLE gt_config_cache INTO ls_existing WITH KEY config_key = iv_key
                                                                user_id    = ''.
     IF sy-subrc = 0 AND ls_existing-is_locked = 'X' AND is_master_user( ) = ''.
       z2ui5_cx_config_error=>raise_config_locked( ).
@@ -213,13 +224,19 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     ls_config-description  = iv_description.
     ls_config-config_type  = iv_type.
     ls_config-is_active    = 'X'.
-    ls_config-is_locked    = COND #( WHEN lv_system_wide = abap_true THEN 'X' ).
+
+    IF lv_system_wide = abap_true.
+      temp1 = 'X'.
+    ELSE.
+      CLEAR temp1.
+    ENDIF.
+    ls_config-is_locked    = temp1.
     ls_config-changed_by   = sy-uname.
     GET TIME STAMP FIELD ls_config-changed_at.
 
     " MODIFY writes the whole row - keep who created it and when
-    DATA ls_saved TYPE ty_config.
-    DATA lv_found TYPE abap_bool.
+
+
     config_row_read( EXPORTING iv_key     = iv_key
                                iv_user_id = lv_user_id
                      IMPORTING es_config  = ls_saved
@@ -242,7 +259,7 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD save_config_to_db.
-    MODIFY z2ui5_t_29 FROM @is_config.
+    MODIFY z2ui5_t_29 FROM is_config.
     IF sy-subrc <> 0.
       z2ui5_cx_config_error=>raise_save_failed( ).
     ENDIF.
@@ -255,10 +272,10 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
 
     " the cache holds the rows of sy-uname only - another user's are read
     IF iv_user_id IS NOT INITIAL AND iv_user_id <> gv_cache_user.
-      SELECT * FROM z2ui5_t_29
+      SELECT * FROM z2ui5_t_29 APPENDING CORRESPONDING FIELDS OF TABLE rt_config
         WHERE is_active = 'X'
-          AND user_id   = @iv_user_id
-        APPENDING CORRESPONDING FIELDS OF TABLE @rt_config.
+          AND user_id   = iv_user_id
+        .
     ENDIF.
   ENDMETHOD.
 
@@ -268,6 +285,16 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     DATA lt_parts       TYPE string_table.
     DATA lv_part1       TYPE string.
     DATA lv_part2       TYPE string.
+TYPES BEGIN OF temp2.
+TYPES ui5_version TYPE z2ui5_t_30-ui5_version.
+TYPES theme TYPE z2ui5_t_30-theme.
+TYPES END OF temp2.
+    TYPES temp1 TYPE STANDARD TABLE OF temp2 WITH DEFAULT KEY.
+DATA lt_rows TYPE temp1.
+    DATA ls_row LIKE LINE OF lt_rows.
+      DATA temp3 LIKE sy-subrc.
+        DATA temp4 LIKE LINE OF rt_themes.
+      DATA temp5 TYPE z2ui5_cl_config_service=>ty_t_themes.
 
     " Normalize UI5 version (e.g., '1.71.22' -> '1.71', fallback to '1' for broad match)
     lv_ui5_version = iv_ui5_version.
@@ -298,38 +325,60 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     " every row up to the running release apply - 1.71 gets what 1.65 and
     " 1.69 list, a release newer than the last row gets them all. (An exact
     " match alone would leave out every theme of an older row.)
-    SELECT ui5_version, theme FROM z2ui5_t_30
+
+
+
+    SELECT ui5_version theme FROM z2ui5_t_30 INTO TABLE lt_rows
       WHERE is_active = 'X'
-      INTO TABLE @DATA(lt_rows).
-    LOOP AT lt_rows INTO DATA(ls_row).
+      .
+
+    LOOP AT lt_rows INTO ls_row.
+
+      READ TABLE rt_themes WITH KEY table_line = ls_row-theme TRANSPORTING NO FIELDS.
+      temp3 = sy-subrc.
       IF check_release_up_to( release = ls_row-ui5_version
                               max     = lv_ui5_version ) = abap_true
-         AND NOT line_exists( rt_themes[ table_line = ls_row-theme ] ).
-        APPEND CONV string( ls_row-theme ) TO rt_themes.
+         AND NOT temp3 = 0.
+
+        temp4 = ls_row-theme.
+        APPEND temp4 TO rt_themes.
       ENDIF.
     ENDLOOP.
 
     " Fallback to default themes if none found
     IF rt_themes IS INITIAL.
-      rt_themes = VALUE #( ( `sap_horizon` ) ( `sap_fiori_3` ) ( `sap_horizon_dark` ) ).
+
+      CLEAR temp5.
+      INSERT `sap_horizon` INTO TABLE temp5.
+      INSERT `sap_fiori_3` INTO TABLE temp5.
+      INSERT `sap_horizon_dark` INTO TABLE temp5.
+      rt_themes = temp5.
     ENDIF.
   ENDMETHOD.
 
   METHOD check_release_up_to.
-    DATA lt_release TYPE STANDARD TABLE OF string WITH EMPTY KEY.
-    DATA lt_max     TYPE STANDARD TABLE OF string WITH EMPTY KEY.
+    TYPES temp2 TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+DATA lt_release TYPE temp2.
+    TYPES temp3 TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+DATA lt_max     TYPE temp3.
     DATA lv_release TYPE i.
     DATA lv_max     TYPE i.
+    DATA lv_max_part LIKE LINE OF lt_max.
+      DATA lv_index LIKE sy-tabix.
+          DATA lv_release_part TYPE string.
 
     SPLIT condense( release ) AT '.' INTO TABLE lt_release.
     SPLIT condense( max ) AT '.' INTO TABLE lt_max.
 
     result = abap_true.
-    LOOP AT lt_max INTO DATA(lv_max_part).
-      DATA(lv_index) = sy-tabix.
+
+    LOOP AT lt_max INTO lv_max_part.
+
+      lv_index = sy-tabix.
       TRY.
           lv_max = lv_max_part.
-          READ TABLE lt_release INTO DATA(lv_release_part) INDEX lv_index.
+
+          READ TABLE lt_release INTO lv_release_part INDEX lv_index.
           IF sy-subrc <> 0.
             lv_release_part = `0`.
           ENDIF.
@@ -353,18 +402,18 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD is_system_wide.
-    result = xsdbool( iv_key = 'UI5_SRC' OR iv_key = 'CSP_POLICY' ).
+    DATA temp1 TYPE xsdboolean.
+    temp1 = boolc( iv_key = 'UI5_SRC' OR iv_key = 'CSP_POLICY' ).
+    result = temp1.
   ENDMETHOD.
 
   METHOD is_legacy_seed.
     " what initialize_default_configs wrote: set_config( ) changes
     " changed_at and the description, so a value a master user saved - even
     " the same URL - is no seed
-    result = xsdbool( is_config-config_key   = 'UI5_SRC'
-                  AND is_config-user_id      IS INITIAL
-                  AND is_config-config_value = 'https://sdk.openui5.org/resources/sap-ui-cachebuster/sap-ui-core.js'
-                  AND is_config-description  = 'UI5 Bootstrap Source'
-                  AND is_config-changed_at   = is_config-created_at ).
+    DATA temp2 TYPE xsdboolean.
+    temp2 = boolc( is_config-config_key = 'UI5_SRC' AND is_config-user_id IS INITIAL AND is_config-config_value = 'https://sdk.openui5.org/resources/sap-ui-cachebuster/sap-ui-core.js' AND is_config-description = 'UI5 Bootstrap Source' AND is_config-changed_at = is_config-created_at ).
+    result = temp2.
   ENDMETHOD.
 
   METHOD is_master_user.
@@ -378,21 +427,31 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD check_config_authority.
+    DATA temp3 TYPE xsdboolean.
     AUTHORITY-CHECK OBJECT 'Z2UI5_CONF'
                     ID 'ACTVT' FIELD iv_activity
                     ID 'Z2UI5_CTYP' FIELD iv_config_key.
-    rv_authorized = xsdbool( sy-subrc = 0 ).
+
+    temp3 = boolc( sy-subrc = 0 ).
+    rv_authorized = temp3.
   ENDMETHOD.
 
   METHOD initialize_default_configs.
     DATA lv_timestamp TYPE timestampl.
     DATA lv_count     TYPE i.
     DATA lt_configs   TYPE ty_t_config.
-    DATA lt_themes    TYPE STANDARD TABLE OF z2ui5_t_30 WITH EMPTY KEY.
+    TYPES temp4 TYPE STANDARD TABLE OF z2ui5_t_30 WITH DEFAULT KEY.
+DATA lt_themes    TYPE temp4.
+    DATA temp7 TYPE z2ui5_cl_config_service=>ty_t_config.
+    DATA temp8 LIKE LINE OF temp7.
+    FIELD-SYMBOLS <ls_config> LIKE LINE OF lt_configs.
+    DATA temp9 LIKE lt_themes.
+    DATA temp10 LIKE LINE OF temp9.
+    FIELD-SYMBOLS <ls_theme> LIKE LINE OF lt_themes.
 
     " Check if already initialized (unless force refresh)
     IF iv_force_refresh = abap_false.
-      SELECT COUNT(*) FROM z2ui5_t_29 INTO @lv_count.
+      SELECT COUNT(*) FROM z2ui5_t_29 INTO lv_count.
       IF lv_count > 0.
         RETURN. " Already initialized
       ENDIF.
@@ -404,35 +463,65 @@ CLASS z2ui5_cl_config_service IMPLEMENTATION.
     " CSP_POLICY: an unset key keeps the abap2UI5 default, which knows what
     " the running platform needs (a stored OpenUI5 CDN URL stops the page
     " from booting on ABAP Cloud)
-    lt_configs = VALUE #(
-      ( config_key = 'THEME'      config_value = 'sap_horizon' config_type = 'STRING'  description = 'Default UI5 Theme' )
-      ( config_key = 'DEBUG_MODE' config_value = ''            config_type = 'BOOLEAN' description = 'Debug Mode Setting' )
-      ( config_key = 'APP_TITLE'  config_value = 'abap2UI5'    config_type = 'STRING'  description = 'Application Title' ) ).
-    LOOP AT lt_configs ASSIGNING FIELD-SYMBOL(<ls_config>).
+
+    CLEAR temp7.
+
+    temp8-config_key = 'THEME'.
+    temp8-config_value = 'sap_horizon'.
+    temp8-config_type = 'STRING'.
+    temp8-description = 'Default UI5 Theme'.
+    INSERT temp8 INTO TABLE temp7.
+    temp8-config_key = 'DEBUG_MODE'.
+    temp8-config_value = ''.
+    temp8-config_type = 'BOOLEAN'.
+    temp8-description = 'Debug Mode Setting'.
+    INSERT temp8 INTO TABLE temp7.
+    temp8-config_key = 'APP_TITLE'.
+    temp8-config_value = 'abap2UI5'.
+    temp8-config_type = 'STRING'.
+    temp8-description = 'Application Title'.
+    INSERT temp8 INTO TABLE temp7.
+    lt_configs = temp7.
+
+    LOOP AT lt_configs ASSIGNING <ls_config>.
       <ls_config>-is_active  = abap_true.
       <ls_config>-created_by = sy-uname.
       <ls_config>-changed_by = sy-uname.
       <ls_config>-created_at = lv_timestamp.
       <ls_config>-changed_at = lv_timestamp.
     ENDLOOP.
-    MODIFY z2ui5_t_29 FROM TABLE @lt_configs.
+    MODIFY z2ui5_t_29 FROM TABLE lt_configs.
 
     " the release each theme is available from - get_theme_list takes every
     " row up to the running release, so one row per theme is enough
-    lt_themes = VALUE #(
-      ( ui5_version = '1.65'  theme = 'sap_fiori_3' )
-      ( ui5_version = '1.96'  theme = 'sap_horizon' )
-      ( ui5_version = '1.101' theme = 'sap_horizon_dark' )
-      ( ui5_version = '1.101' theme = 'sap_horizon_hcb' )
-      ( ui5_version = '1.101' theme = 'sap_horizon_hcw' ) ).
-    LOOP AT lt_themes ASSIGNING FIELD-SYMBOL(<ls_theme>).
+
+    CLEAR temp9.
+
+    temp10-ui5_version = '1.65'.
+    temp10-theme = 'sap_fiori_3'.
+    INSERT temp10 INTO TABLE temp9.
+    temp10-ui5_version = '1.96'.
+    temp10-theme = 'sap_horizon'.
+    INSERT temp10 INTO TABLE temp9.
+    temp10-ui5_version = '1.101'.
+    temp10-theme = 'sap_horizon_dark'.
+    INSERT temp10 INTO TABLE temp9.
+    temp10-ui5_version = '1.101'.
+    temp10-theme = 'sap_horizon_hcb'.
+    INSERT temp10 INTO TABLE temp9.
+    temp10-ui5_version = '1.101'.
+    temp10-theme = 'sap_horizon_hcw'.
+    INSERT temp10 INTO TABLE temp9.
+    lt_themes = temp9.
+
+    LOOP AT lt_themes ASSIGNING <ls_theme>.
       <ls_theme>-is_active  = abap_true.
       <ls_theme>-created_by = sy-uname.
       <ls_theme>-changed_by = sy-uname.
       <ls_theme>-created_at = lv_timestamp.
       <ls_theme>-changed_at = lv_timestamp.
     ENDLOOP.
-    MODIFY z2ui5_t_30 FROM TABLE @lt_themes.
+    MODIFY z2ui5_t_30 FROM TABLE lt_themes.
 
     COMMIT WORK AND WAIT.
   ENDMETHOD.
